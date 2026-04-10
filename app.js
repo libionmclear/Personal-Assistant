@@ -177,16 +177,74 @@ function deleteEvent(type, idx) {
 }
 
 // ===== Hero Products =====
+function getPmmList(pmmStr) {
+    if (!pmmStr) return [];
+    return pmmStr.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function renderBubbles(names, prodIdx, field) {
+    return names.map((name, i) =>
+        `<span class="bubble">${esc(name)}<button class="bubble-x" onclick="event.stopPropagation(); removePmm(${prodIdx},'${field}',${i})" title="Remove">&times;</button></span>`
+    ).join('');
+}
+
+function removePmm(prodIdx, field, nameIdx) {
+    const list = getPmmList(products[prodIdx][field]);
+    list.splice(nameIdx, 1);
+    products[prodIdx][field] = list.join(', ');
+    saveData(STORAGE_KEYS.products, products);
+    renderProducts();
+}
+
+function addPmmToProduct() {
+    const sel = document.getElementById('pmm-product-select');
+    const input = document.getElementById('pmm-name-input');
+    const idx = parseInt(sel.value);
+    const name = input.value.trim();
+    if (isNaN(idx) || !name) return;
+    const list = getPmmList(products[idx].pmm);
+    list.push(name);
+    products[idx].pmm = list.join(', ');
+    saveData(STORAGE_KEYS.products, products);
+    input.value = '';
+    renderProducts();
+}
+
+function addPmmFromDetail(idx) {
+    const input = document.getElementById('detail-pmm-input');
+    const name = input.value.trim();
+    if (!name) return;
+    const list = getPmmList(products[idx].pmm);
+    list.push(name);
+    products[idx].pmm = list.join(', ');
+    saveData(STORAGE_KEYS.products, products);
+    input.value = '';
+    showProductDetail(idx);
+}
+
 function renderProducts() {
     const grid = document.getElementById('products-grid');
     grid.innerHTML = '';
     products.forEach((prod, idx) => {
+        const pmmNames = getPmmList(prod.pmm);
+        const managerName = prod.pmmManager || '';
         const card = document.createElement('div');
         card.className = 'product-card';
         card.onclick = () => showProductDetail(idx);
-        card.innerHTML = `<h3>${esc(prod.name)}</h3><div class="pmm-list"><strong>PMM:</strong> ${esc(prod.pmm)}</div>`;
+        card.innerHTML = `
+            <h3>${esc(prod.name)}</h3>
+            ${managerName ? `<div class="card-manager"><span class="material-icons-outlined">manage_accounts</span> ${esc(managerName)}</div>` : ''}
+            <div class="card-label">PMM</div>
+            <div class="bubble-wrap">${renderBubbles(pmmNames, idx, 'pmm')}</div>
+        `;
         grid.appendChild(card);
     });
+
+    // Populate product selector
+    const sel = document.getElementById('pmm-product-select');
+    if (sel) {
+        sel.innerHTML = products.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
+    }
 }
 
 function showProductDetail(idx) {
@@ -194,14 +252,22 @@ function showProductDetail(idx) {
     document.getElementById('product-detail-title').textContent = prod.name;
 
     const content = document.getElementById('product-detail-content');
+    const pmmBubbles = renderBubbles(getPmmList(prod.pmm), idx, 'pmm');
     content.innerHTML = `
         <div class="detail-section">
             <h3><span class="material-icons-outlined">people</span> Team</h3>
             <div class="detail-fields">
-                <div class="detail-field"><label>PMM</label><input value="${esc(prod.pmm)}" onchange="updateProduct(${idx},'pmm',this.value)"></div>
                 <div class="detail-field"><label>PMM Manager</label><input value="${esc(prod.pmmManager)}" onchange="updateProduct(${idx},'pmmManager',this.value)"></div>
                 <div class="detail-field"><label>SME</label><input value="${esc(prod.sme)}" onchange="updateProduct(${idx},'sme',this.value)"></div>
                 <div class="detail-field"><label>Global Skilling</label><input value="${esc(prod.globalSkilling)}" onchange="updateProduct(${idx},'globalSkilling',this.value)"></div>
+            </div>
+            <div class="detail-field" style="margin-top:16px">
+                <label>PMMs</label>
+                <div class="bubble-wrap">${pmmBubbles}</div>
+                <div class="pmm-add-inline">
+                    <input type="text" id="detail-pmm-input" placeholder="Add PMM name...">
+                    <button class="btn-primary btn-sm" onclick="addPmmFromDetail(${idx})"><span class="material-icons-outlined">add</span></button>
+                </div>
             </div>
         </div>
         <div class="detail-section">

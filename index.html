@@ -208,6 +208,22 @@
                         <h1><span class="material-icons-outlined">star</span> Hero Products</h1>
                     </div>
                     <div class="products-grid" id="products-grid"></div>
+
+                    <!-- PMM Management Panel -->
+                    <div class="pmm-panel">
+                        <h3><span class="material-icons-outlined">person_add</span> Manage PMMs</h3>
+                        <div class="pmm-panel-row">
+                            <div class="pmm-panel-field">
+                                <label>Product</label>
+                                <select id="pmm-product-select"></select>
+                            </div>
+                            <div class="pmm-panel-field">
+                                <label>PMM Name</label>
+                                <input type="text" id="pmm-name-input" placeholder="Enter PMM name...">
+                            </div>
+                            <button class="btn-primary" onclick="addPmmToProduct()"><span class="material-icons-outlined">add</span> Add PMM</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Product Detail Page -->
