@@ -19,7 +19,12 @@ let isAuthenticated = false;
 function loadData(key, defaults) {
     try {
         const saved = localStorage.getItem(key);
-        return saved ? JSON.parse(saved) : defaults;
+        if (saved) return JSON.parse(saved);
+        // Write defaults to localStorage so getAllData/sync never sees empty
+        if (defaults && defaults.length > 0) {
+            localStorage.setItem(key, JSON.stringify(defaults));
+        }
+        return defaults;
     } catch { return defaults; }
 }
 
@@ -47,13 +52,12 @@ function scheduleSyncToServer() {
 }
 
 function getAllData() {
-    const data = {};
-    for (const [name, key] of Object.entries(STORAGE_KEYS)) {
-        try { data[name] = JSON.parse(localStorage.getItem(key)) || []; }
-        catch { data[name] = []; }
-    }
-    data._savedAt = new Date().toISOString();
-    return data;
+    // Use in-memory state variables — they always have data (including defaults)
+    return {
+        tasks, archivedTasks, events1p, events3p, products,
+        personalTasks, archivedPersonalTasks, familyEvents, financeRecords,
+        _savedAt: new Date().toISOString()
+    };
 }
 
 function applyAllData(data) {
@@ -96,11 +100,26 @@ async function syncToServer() {
             return sum + (Array.isArray(arr) ? arr.length : 0);
         }, 0);
         if (localItemCount === 0) {
-            // Don't sync completely empty data — likely a fresh/broken session
             console.warn('Sync blocked: local data is completely empty, refusing to overwrite server');
             updateSyncIndicator('ok');
             return;
         }
+        // Per-key protection: fetch server data and don't overwrite non-empty server keys with empty local
+        try {
+            const srvResp = await fetch('/api/data');
+            if (srvResp.ok) {
+                const srvData = await srvResp.json();
+                for (const [name] of Object.entries(STORAGE_KEYS)) {
+                    const localArr = localData[name];
+                    const srvArr = srvData[name];
+                    if ((!localArr || (Array.isArray(localArr) && localArr.length === 0))
+                        && Array.isArray(srvArr) && srvArr.length > 0) {
+                        console.warn(`Sync: preserving server ${name} (${srvArr.length} items) — local is empty`);
+                        localData[name] = srvArr;
+                    }
+                }
+            }
+        } catch (e) { console.warn('Per-key merge check failed:', e); }
         const resp = await fetch('/api/data', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -1453,7 +1472,7 @@ window.onerror = function(msg, url, line, col, error) {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('[PA] v4.11b DOMContentLoaded fired');
+    console.log('[PA] v4.12a DOMContentLoaded fired');
     try {
         const authed = await checkAuth();
         console.log('[PA] Auth check:', authed);
