@@ -988,20 +988,24 @@ function renderFinance() {
     const filterVal = filterWho ? filterWho.value : '';
     const tbody = document.getElementById('finance-body');
     tbody.innerHTML = '';
-    let totalDebit = 0, totalCredit = 0;
+    let totalDebit = 0, totalCredit = 0, totalPurchase = 0, totalCash = 0;
+    const typeColors = { Debit: '#e74c3c', Credit: '#27ae60', Purchase: '#e67e22', Cash: '#2980b9' };
+    const typeOptions = ['Debit', 'Credit', 'Purchase', 'Cash'];
     financeRecords.forEach((rec, idx) => {
         if (filterVal && rec.who !== filterVal) return;
         const amt = parseFloat(rec.amount) || 0;
         if (rec.type === 'Debit') totalDebit += amt;
-        else totalCredit += amt;
+        else if (rec.type === 'Credit') totalCredit += amt;
+        else if (rec.type === 'Purchase') totalPurchase += amt;
+        else if (rec.type === 'Cash') totalCash += amt;
+        const tColor = typeColors[rec.type] || '#7f8c8d';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${buildFinanceWhoSelect(rec.who, idx)}</td>
-            <td><select class="cat-select" style="background:${rec.type === 'Debit' ? '#e74c3c' : '#27ae60'};color:#fff" onchange="updateFinance(${idx},'type',this.value); this.style.background=this.value==='Debit'?'#e74c3c':'#27ae60';">
-                <option value="Debit" ${rec.type === 'Debit' ? 'selected' : ''} style="background:#fff;color:#333">Debit</option>
-                <option value="Credit" ${rec.type === 'Credit' ? 'selected' : ''} style="background:#fff;color:#333">Credit</option>
+            <td><select class="cat-select" style="background:${tColor};color:#fff" onchange="updateFinance(${idx},'type',this.value)">
+                ${typeOptions.map(t => `<option value="${t}" ${t === rec.type ? 'selected' : ''} style="background:#fff;color:#333">${t}</option>`).join('')}
             </select></td>
-            <td><input type="number" step="0.01" value="${esc(rec.amount)}" placeholder="0.00" onchange="updateFinance(${idx},'amount',this.value)" style="width:100px"></td>
+            <td style="text-align:right;white-space:nowrap"><span style="color:#888">$</span><input type="number" step="0.01" value="${esc(rec.amount)}" placeholder="0.00" onchange="updateFinance(${idx},'amount',this.value)" style="width:100px;text-align:right"></td>
             <td><input type="date" value="${esc(rec.date)}" onchange="updateFinance(${idx},'date',this.value)"></td>
             <td><textarea rows="1" placeholder="Notes..." onchange="updateFinance(${idx},'notes',this.value)">${esc(rec.notes || '')}</textarea></td>
             <td><button class="btn-delete" onclick="deleteFinance(${idx})" title="Delete"><span class="material-icons-outlined">delete</span></button></td>
@@ -1011,9 +1015,10 @@ function renderFinance() {
     // Totals
     const totalEl = document.getElementById('finance-totals');
     if (totalEl) {
-        const balance = totalCredit - totalDebit;
+        const balance = totalCredit + totalCash - totalDebit - totalPurchase;
         const balColor = balance >= 0 ? '#27ae60' : '#e74c3c';
-        totalEl.innerHTML = `<span style="color:#e74c3c;font-weight:700">Debit: $${totalDebit.toFixed(2)}</span> &nbsp;|&nbsp; <span style="color:#27ae60;font-weight:700">Credit: $${totalCredit.toFixed(2)}</span> &nbsp;|&nbsp; <span style="color:${balColor};font-weight:700">Balance: $${balance.toFixed(2)}</span>`;
+        const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        totalEl.innerHTML = `<span style="color:#e74c3c;font-weight:700">Debit: $${fmt(totalDebit)}</span> &nbsp;|&nbsp; <span style="color:#27ae60;font-weight:700">Credit: $${fmt(totalCredit)}</span> &nbsp;|&nbsp; <span style="color:#e67e22;font-weight:700">Purchase: $${fmt(totalPurchase)}</span> &nbsp;|&nbsp; <span style="color:#2980b9;font-weight:700">Cash: $${fmt(totalCash)}</span> &nbsp;|&nbsp; <span style="color:${balColor};font-weight:700">Balance: $${fmt(balance)}</span>`;
     }
 }
 
