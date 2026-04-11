@@ -1055,22 +1055,24 @@ function renderFinance() {
     const filterVal = filterWho ? filterWho.value : '';
     const tbody = document.getElementById('finance-body');
     tbody.innerHTML = '';
-    let totalDebit = 0, totalCredit = 0, totalPurchase = 0, totalCash = 0;
-    const typeColors = { Debit: '#e74c3c', Credit: '#27ae60', Purchase: '#e67e22', Cash: '#2980b9' };
-    const typeOptions = ['Debit', 'Credit', 'Purchase', 'Cash'];
+    let totalDebit = 0, totalCredit = 0;
     financeRecords.forEach((rec, idx) => {
         if (filterVal && rec.who !== filterVal) return;
         const amt = parseFloat(rec.amount) || 0;
         if (rec.type === 'Debit') totalDebit += amt;
-        else if (rec.type === 'Credit') totalCredit += amt;
-        else if (rec.type === 'Purchase') totalPurchase += amt;
-        else if (rec.type === 'Cash') totalCash += amt;
-        const tColor = typeColors[rec.type] || '#7f8c8d';
+        else totalCredit += amt;
+        const tColor = rec.type === 'Debit' ? '#e74c3c' : '#27ae60';
+        const mColor = rec.method === 'Cash' ? '#2980b9' : '#e67e22';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${buildFinanceWhoSelect(rec.who, idx)}</td>
             <td><select class="cat-select" style="background:${tColor};color:#fff" onchange="updateFinance(${idx},'type',this.value)">
-                ${typeOptions.map(t => `<option value="${t}" ${t === rec.type ? 'selected' : ''} style="background:#fff;color:#333">${t}</option>`).join('')}
+                <option value="Debit" ${rec.type === 'Debit' ? 'selected' : ''} style="background:#fff;color:#333">Debit</option>
+                <option value="Credit" ${rec.type === 'Credit' ? 'selected' : ''} style="background:#fff;color:#333">Credit</option>
+            </select></td>
+            <td><select class="cat-select" style="background:${mColor};color:#fff" onchange="updateFinance(${idx},'method',this.value)">
+                <option value="Purchase" ${rec.method !== 'Cash' ? 'selected' : ''} style="background:#fff;color:#333">Purchase</option>
+                <option value="Cash" ${rec.method === 'Cash' ? 'selected' : ''} style="background:#fff;color:#333">Cash</option>
             </select></td>
             <td style="text-align:right;white-space:nowrap"><span style="color:#888">$</span><input type="number" step="0.01" value="${esc(rec.amount)}" placeholder="0.00" onchange="updateFinance(${idx},'amount',this.value)" style="width:100px;text-align:right"></td>
             <td><input type="date" value="${esc(rec.date)}" onchange="updateFinance(${idx},'date',this.value)"></td>
@@ -1082,10 +1084,10 @@ function renderFinance() {
     // Totals
     const totalEl = document.getElementById('finance-totals');
     if (totalEl) {
-        const balance = totalCredit + totalCash - totalDebit - totalPurchase;
+        const balance = totalCredit - totalDebit;
         const balColor = balance >= 0 ? '#27ae60' : '#e74c3c';
         const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        totalEl.innerHTML = `<span style="color:#e74c3c;font-weight:700">Debit: $${fmt(totalDebit)}</span> &nbsp;|&nbsp; <span style="color:#27ae60;font-weight:700">Credit: $${fmt(totalCredit)}</span> &nbsp;|&nbsp; <span style="color:#e67e22;font-weight:700">Purchase: $${fmt(totalPurchase)}</span> &nbsp;|&nbsp; <span style="color:#2980b9;font-weight:700">Cash: $${fmt(totalCash)}</span> &nbsp;|&nbsp; <span style="color:${balColor};font-weight:700">Balance: $${fmt(balance)}</span>`;
+        totalEl.innerHTML = `<span style="color:#e74c3c;font-weight:700">Debit: $${fmt(totalDebit)}</span> &nbsp;|&nbsp; <span style="color:#27ae60;font-weight:700">Credit: $${fmt(totalCredit)}</span> &nbsp;|&nbsp; <span style="color:${balColor};font-weight:700">Balance: $${fmt(balance)}</span>`;
     }
 }
 
@@ -1097,7 +1099,7 @@ function buildFinanceWhoSelect(selected, idx) {
 }
 
 function addFinanceRecord() {
-    financeRecords.push({ id: Date.now(), who: '', type: 'Debit', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+    financeRecords.push({ id: Date.now(), who: '', type: 'Debit', method: 'Purchase', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
     saveData(STORAGE_KEYS.financeRecords, financeRecords);
     renderFinance();
 }
@@ -1105,7 +1107,7 @@ function addFinanceRecord() {
 function updateFinance(idx, field, value) {
     financeRecords[idx][field] = value;
     debounceSave(STORAGE_KEYS.financeRecords, financeRecords);
-    if (field === 'type' || field === 'amount' || field === 'who') renderFinance();
+    if (field === 'type' || field === 'method' || field === 'amount' || field === 'who') renderFinance();
 }
 
 function deleteFinance(idx) {
