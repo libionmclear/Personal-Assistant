@@ -1282,12 +1282,33 @@ async function initApp() {
     });
 }
 
+// Global error handler - shows errors on screen for debugging
+window.onerror = function(msg, url, line, col, error) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:red;color:white;padding:12px;font-size:13px;z-index:99999;font-family:monospace';
+    d.textContent = 'JS ERROR: ' + msg + ' (line ' + line + ')';
+    document.body.appendChild(d);
+    console.error('Global error:', msg, url, line, col, error);
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
-    const authed = await checkAuth();
-    if (authed) {
-        showApp();
-        await initApp();
-    } else {
-        showLoginScreen();
+    console.log('[PA] v4.11b DOMContentLoaded fired');
+    try {
+        const authed = await checkAuth();
+        console.log('[PA] Auth check:', authed);
+        if (authed) {
+            showApp();
+            await initApp();
+            console.log('[PA] App initialized OK. Tasks:', tasks.length, 'Events1P:', events1p.length);
+        } else {
+            showLoginScreen();
+            console.log('[PA] Login screen shown');
+        }
+    } catch (err) {
+        console.error('[PA] Init error:', err);
+        const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:red;color:white;padding:12px;font-size:13px;z-index:99999;font-family:monospace';
+        d.textContent = 'INIT ERROR: ' + err.message;
+        document.body.appendChild(d);
     }
 });
