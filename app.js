@@ -703,7 +703,74 @@ function buildFamilyWhoSelect(selected, idx) {
 }
 
 // ===== Family Events =====
+const FAMILY_EVENT_COLORS = ['#2980b9','#e74c3c','#27ae60','#8e44ad','#e67e22','#c2185b','#00897b','#5c6bc0','#f57c00','#6d4c41'];
+
+function renderFamilyCalendar() {
+    const container = document.getElementById('family-calendar-strip');
+    if (!container) return;
+    const now = new Date();
+    const eventColors = {};
+    let colorIdx = 0;
+    // Assign a color to each event by name
+    familyEvents.forEach(ev => {
+        if (ev.name && !eventColors[ev.name]) {
+            eventColors[ev.name] = FAMILY_EVENT_COLORS[colorIdx % FAMILY_EVENT_COLORS.length];
+            colorIdx++;
+        }
+    });
+
+    let html = '<div class="fam-cal-strip">';
+    for (let m = 0; m < 6; m++) {
+        const viewDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        const monthName = viewDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay();
+        const today = new Date(); today.setHours(0,0,0,0);
+
+        // Build day-to-events map
+        const dayEvents = {};
+        familyEvents.forEach(ev => {
+            if (!ev.name || !ev.dateFrom) return;
+            const from = new Date(ev.dateFrom + 'T00:00:00');
+            const to = ev.dateTo ? new Date(ev.dateTo + 'T00:00:00') : from;
+            for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+                if (d.getFullYear() === year && d.getMonth() === month) {
+                    if (!dayEvents[d.getDate()]) dayEvents[d.getDate()] = [];
+                    dayEvents[d.getDate()].push(ev);
+                }
+            }
+        });
+
+        html += `<div class="fam-cal-month">
+            <div class="fam-cal-month-title">${monthName}</div>
+            <div class="fam-cal-grid">
+                <div class="fam-cal-dh">S</div><div class="fam-cal-dh">M</div><div class="fam-cal-dh">T</div><div class="fam-cal-dh">W</div><div class="fam-cal-dh">T</div><div class="fam-cal-dh">F</div><div class="fam-cal-dh">S</div>`;
+        for (let i = 0; i < firstDay; i++) html += '<div class="fam-cal-day fam-cal-empty"></div>';
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+            const evts = dayEvents[day] || [];
+            const bgColor = evts.length ? eventColors[evts[0].name] : '';
+            const tooltipText = evts.map(e => e.name + (e.where ? ' @ ' + e.where : '')).join('\\n');
+            html += `<div class="fam-cal-day${isToday ? ' fam-cal-today' : ''}${evts.length ? ' fam-cal-has-event' : ''}" ${bgColor ? `style="background:${bgColor};color:#fff"` : ''} ${evts.length ? `title="${esc(tooltipText)}"` : ''}>
+                ${day}
+                ${evts.length ? `<div class="fam-cal-tip">${evts.map(e => `<div><strong>${esc(e.name)}</strong>${e.where ? '<br>' + esc(e.where) : ''}${e.who ? '<br><em>' + esc(e.who) + '</em>' : ''}</div>`).join('')}</div>` : ''}
+            </div>`;
+        }
+        html += '</div></div>';
+    }
+    // Legend
+    html += '<div class="fam-cal-legend">';
+    for (const [name, color] of Object.entries(eventColors)) {
+        html += `<span class="fam-cal-legend-item"><span class="fam-cal-legend-dot" style="background:${color}"></span>${esc(name)}</span>`;
+    }
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
 function renderFamilyEvents() {
+    renderFamilyCalendar();
     const tbody = document.getElementById('family-events-body');
     tbody.innerHTML = '';
     familyEvents.forEach((ev, idx) => {
