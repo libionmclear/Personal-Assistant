@@ -4,7 +4,10 @@ const STORAGE_KEYS = {
     archivedTasks: 'pa_tasks_archived',
     events1p: 'pa_events_1p',
     events3p: 'pa_events_3p',
-    products: 'pa_products'
+    products: 'pa_products',
+    personalTasks: 'pa_personal_tasks',
+    archivedPersonalTasks: 'pa_personal_tasks_archived',
+    familyEvents: 'pa_family_events'
 };
 
 function loadData(key, defaults) {
@@ -76,6 +79,9 @@ let archivedTasks = loadData(STORAGE_KEYS.archivedTasks, []);
 let events1p = loadData(STORAGE_KEYS.events1p, DEFAULT_EVENTS_1P);
 let events3p = loadData(STORAGE_KEYS.events3p, DEFAULT_EVENTS_3P);
 let products = loadData(STORAGE_KEYS.products, DEFAULT_PRODUCTS);
+let personalTasks = loadData(STORAGE_KEYS.personalTasks, DEFAULT_PERSONAL_TASKS);
+let archivedPersonalTasks = loadData(STORAGE_KEYS.archivedPersonalTasks, []);
+let familyEvents = loadData(STORAGE_KEYS.familyEvents, DEFAULT_FAMILY_EVENTS);
 let currentSort = { table: null, column: null, dir: 'asc' };
 
 // ===== Page Navigation =====
@@ -88,6 +94,8 @@ function showPage(pageId) {
         if (pageId === 'hero-products') renderProducts();
         if (pageId === '1p-events') renderEvents('1p');
         if (pageId === '3p-events') renderEvents('3p');
+        if (pageId === 'personal-tasks') renderPersonalTasks();
+        if (pageId === 'family-events') renderFamilyEvents();
         if (pageId === 'welcome') updateStats();
     }
 }
@@ -110,6 +118,22 @@ const TASK_CATEGORIES = [
 ];
 
 const VENDOR_NAMES = ['Amy', 'Mindy', 'Erica'];
+
+const PERSONAL_CATEGORIES = [
+    { value: 'Event', color: '#e74c3c', bg: '#fdedec' },
+    { value: 'Personal', color: '#3498db', bg: '#ebf5fb' },
+    { value: 'Finance', color: '#27ae60', bg: '#eafaf1' },
+    { value: 'Church', color: '#8e44ad', bg: '#f5eef8' },
+    { value: 'Entertainment', color: '#e67e22', bg: '#fef5ec' },
+    { value: 'Family', color: '#2980b9', bg: '#d6eaf8' },
+    { value: 'UW', color: '#4b2e83', bg: '#ece3f5' },
+    { value: 'Moglie', color: '#c2185b', bg: '#fce4ec' }
+];
+
+const PERSONAL_WHO = ['Marco', 'Daniela', 'David', 'Andrew', 'Nicholas', 'Simon', 'Sara', 'Jackson', 'Maria', 'Egidio', 'Liana', 'Papi', 'Altri'];
+
+const DEFAULT_PERSONAL_TASKS = [];
+const DEFAULT_FAMILY_EVENTS = [];
 
 const URGENCY_LEVELS = [
     { value: '1', label: 'Urgent 1', color: '#e74c3c', bg: '#fdedec' },
@@ -300,6 +324,198 @@ function deleteTask(idx) {
     tasks.splice(idx, 1);
     saveData(STORAGE_KEYS.tasks, tasks);
     renderTasks();
+}
+
+// ===== Personal Tasks =====
+function getPersonalCategoryInfo(cat) {
+    return PERSONAL_CATEGORIES.find(c => c.value === cat) || PERSONAL_CATEGORIES[1];
+}
+
+function buildPersonalCategorySelect(selected, idx) {
+    const cat = getPersonalCategoryInfo(selected);
+    return `<select class="cat-select" style="background:${cat.color};color:#fff" onchange="updatePersonalTask(${idx},'category',this.value); this.style.background=getPersonalCategoryInfo(this.value).color;">
+        ${PERSONAL_CATEGORIES.map(c => `<option value="${c.value}" ${c.value === selected ? 'selected' : ''} style="background:#fff;color:#333">${c.value}</option>`).join('')}
+    </select>`;
+}
+
+function buildPersonalUrgencySelect(selected, idx) {
+    const u = getUrgencyInfo(selected);
+    return `<select class="urgency-select" style="background:${u.color};color:#fff" onchange="updatePersonalTask(${idx},'urgency',this.value); this.style.background=getUrgencyInfo(this.value).color;">
+        ${URGENCY_LEVELS.map(l => `<option value="${l.value}" ${l.value === selected ? 'selected' : ''} style="background:#fff;color:#333">${l.label}</option>`).join('')}
+    </select>`;
+}
+
+function buildPersonalWhoSelect(selected, idx) {
+    return `<select class="vendor-select" onchange="updatePersonalTask(${idx},'who',this.value)">
+        <option value="" ${!selected ? 'selected' : ''}>—</option>
+        ${PERSONAL_WHO.map(w => `<option value="${w}" ${w === selected ? 'selected' : ''}>${w}</option>`).join('')}
+    </select>`;
+}
+
+function renderPersonalTasks() {
+    const tbody = document.getElementById('personal-tasks-body');
+    tbody.innerHTML = '';
+    const sorted = personalTasks.map((t, i) => ({...t, _idx: i})).sort((a, b) => {
+        const ua = parseInt(a.urgency || '4');
+        const ub = parseInt(b.urgency || '4');
+        return ua - ub;
+    });
+    sorted.forEach((task) => {
+        const idx = task._idx;
+        const cat = getPersonalCategoryInfo(task.category);
+        const alert = getDateAlert(task.date);
+        const tr = document.createElement('tr');
+        tr.style.background = task.category ? cat.bg : '';
+        tr.innerHTML = `
+            <td class="col-check"><input type="checkbox" class="task-checkbox" onchange="completePersonalTask(${idx})" title="Mark complete"></td>
+            <td>${buildPersonalUrgencySelect(task.urgency || '4', idx)}</td>
+            <td>${buildPersonalCategorySelect(task.category || 'Personal', idx)}</td>
+            <td><input type="text" value="${esc(task.name)}" placeholder="Task name..." onchange="updatePersonalTask(${idx},'name',this.value)"></td>
+            <td class="date-cell"><input type="date" value="${esc(task.date)}" onchange="updatePersonalTask(${idx},'date',this.value)">${alert}</td>
+            <td><input type="text" value="${esc(task.link)}" placeholder="Link..." onchange="updatePersonalTask(${idx},'link',this.value)"></td>
+            <td>${buildPersonalWhoSelect(task.who, idx)}</td>
+            <td><textarea rows="1" placeholder="Notes..." onchange="updatePersonalTask(${idx},'notes',this.value)">${esc(task.notes || '')}</textarea></td>
+            <td><button class="btn-delete" onclick="deletePersonalTask(${idx})" title="Delete"><span class="material-icons-outlined">delete</span></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    renderPersonalArchivedToggle();
+}
+
+function completePersonalTask(idx) {
+    const task = personalTasks.splice(idx, 1)[0];
+    task.completedDate = new Date().toISOString().split('T')[0];
+    archivedPersonalTasks.unshift(task);
+    saveData(STORAGE_KEYS.personalTasks, personalTasks);
+    saveData(STORAGE_KEYS.archivedPersonalTasks, archivedPersonalTasks);
+    renderPersonalTasks();
+}
+
+function resumePersonalTask(idx) {
+    const task = archivedPersonalTasks.splice(idx, 1)[0];
+    delete task.completedDate;
+    personalTasks.push(task);
+    saveData(STORAGE_KEYS.personalTasks, personalTasks);
+    saveData(STORAGE_KEYS.archivedPersonalTasks, archivedPersonalTasks);
+    renderPersonalTasks();
+}
+
+function deleteArchivedPersonalTask(idx) {
+    archivedPersonalTasks.splice(idx, 1);
+    saveData(STORAGE_KEYS.archivedPersonalTasks, archivedPersonalTasks);
+    renderPersonalTasks();
+}
+
+function renderPersonalArchivedToggle() {
+    let section = document.getElementById('personal-archived-section');
+    if (!section) {
+        section = document.createElement('div');
+        section.id = 'personal-archived-section';
+        document.getElementById('page-personal-tasks').appendChild(section);
+    }
+    if (archivedPersonalTasks.length === 0) { section.innerHTML = ''; return; }
+    section.innerHTML = `
+        <div class="archived-header" onclick="togglePersonalArchived()">
+            <span class="material-icons-outlined">inventory_2</span> Completed Tasks (${archivedPersonalTasks.length})
+            <span class="material-icons-outlined" id="personal-arch-chevron" style="margin-left:auto; transition:transform 0.3s">expand_more</span>
+        </div>
+        <div id="personal-archived-table-wrap" class="archived-table-wrap">
+            <div class="table-container">
+                <table>
+                    <thead><tr>
+                        <th>Urgency</th><th>Category</th><th>Task</th><th>Date</th><th>Completed</th><th>Link</th><th>Who</th><th>Notes</th><th></th>
+                    </tr></thead>
+                    <tbody>
+                        ${archivedPersonalTasks.map((t, i) => {
+                            const aCat = getPersonalCategoryInfo(t.category);
+                            return `
+                            <tr class="archived-row" style="background:${t.category ? aCat.bg : ''}">
+                                <td><span class="urgency-badge" style="background:${getUrgencyInfo(t.urgency || '4').color}">${getUrgencyInfo(t.urgency || '4').label}</span></td>
+                                <td><span class="cat-badge" style="background:${aCat.color}">${esc(t.category || 'Personal')}</span></td>
+                                <td>${esc(t.name)}</td>
+                                <td>${esc(t.date)}</td>
+                                <td><span class="completed-badge">${esc(t.completedDate)}</span></td>
+                                <td>${esc(t.link)}</td>
+                                <td>${esc(t.who)}</td>
+                                <td>${esc(t.notes || '')}</td>
+                                <td>
+                                    <button class="btn-resume" onclick="resumePersonalTask(${i})" title="Resume"><span class="material-icons-outlined">replay</span></button>
+                                    <button class="btn-delete" onclick="deleteArchivedPersonalTask(${i})" title="Delete"><span class="material-icons-outlined">delete</span></button>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function togglePersonalArchived() {
+    const wrap = document.getElementById('personal-archived-table-wrap');
+    const chevron = document.getElementById('personal-arch-chevron');
+    wrap.classList.toggle('open');
+    chevron.style.transform = wrap.classList.contains('open') ? 'rotate(180deg)' : '';
+}
+
+function addPersonalTask() {
+    personalTasks.push({ id: Date.now(), name: '', who: '', date: '', link: '', category: 'Personal', notes: '', urgency: '4' });
+    saveData(STORAGE_KEYS.personalTasks, personalTasks);
+    renderPersonalTasks();
+    const inputs = document.querySelectorAll('#personal-tasks-body tr:last-child input');
+    if (inputs.length) inputs[0].focus();
+}
+
+function updatePersonalTask(idx, field, value) {
+    personalTasks[idx][field] = value;
+    debounceSave(STORAGE_KEYS.personalTasks, personalTasks);
+}
+
+function deletePersonalTask(idx) {
+    personalTasks.splice(idx, 1);
+    saveData(STORAGE_KEYS.personalTasks, personalTasks);
+    renderPersonalTasks();
+}
+
+// ===== Family Events =====
+function renderFamilyEvents() {
+    const tbody = document.getElementById('family-events-body');
+    tbody.innerHTML = '';
+    familyEvents.forEach((ev, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="date" value="${esc(ev.dateFrom)}" onchange="updateFamilyEvent(${idx},'dateFrom',this.value)"></td>
+            <td><input type="date" value="${esc(ev.dateTo)}" onchange="updateFamilyEvent(${idx},'dateTo',this.value)"></td>
+            <td><input type="text" value="${esc(ev.name)}" placeholder="Event name..." onchange="updateFamilyEvent(${idx},'name',this.value)"></td>
+            <td><input type="text" value="${esc(ev.where)}" placeholder="Location..." onchange="updateFamilyEvent(${idx},'where',this.value)"></td>
+            <td><input type="text" value="${esc(ev.hotel)}" placeholder="Hotel..." onchange="updateFamilyEvent(${idx},'hotel',this.value)"></td>
+            <td><input type="text" value="${esc(ev.car)}" placeholder="Car..." onchange="updateFamilyEvent(${idx},'car',this.value)"></td>
+            <td><input type="text" value="${esc(ev.transportation)}" placeholder="Details..." onchange="updateFamilyEvent(${idx},'transportation',this.value)"></td>
+            <td><input type="text" value="${esc(ev.who)}" placeholder="Who..." onchange="updateFamilyEvent(${idx},'who',this.value)"></td>
+            <td><textarea rows="1" placeholder="Notes..." onchange="updateFamilyEvent(${idx},'notes',this.value)">${esc(ev.notes)}</textarea></td>
+            <td><button class="btn-delete" onclick="deleteFamilyEvent(${idx})" title="Delete"><span class="material-icons-outlined">delete</span></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function addFamilyEvent() {
+    familyEvents.push({ id: Date.now(), dateFrom: '', dateTo: '', name: '', where: '', hotel: '', car: '', transportation: '', who: '', notes: '' });
+    saveData(STORAGE_KEYS.familyEvents, familyEvents);
+    renderFamilyEvents();
+    const inputs = document.querySelectorAll('#family-events-body tr:last-child input');
+    if (inputs.length) inputs[0].focus();
+}
+
+function updateFamilyEvent(idx, field, value) {
+    familyEvents[idx][field] = value;
+    debounceSave(STORAGE_KEYS.familyEvents, familyEvents);
+}
+
+function deleteFamilyEvent(idx) {
+    familyEvents.splice(idx, 1);
+    saveData(STORAGE_KEYS.familyEvents, familyEvents);
+    renderFamilyEvents();
 }
 
 // ===== Events =====
@@ -620,6 +836,68 @@ function renderHomeDashboard() {
                 const dateStr = new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
                 return `<div class="home-event-row">
                     <span class="home-event-badge">${e.type}</span>
+                    <span class="home-event-name">${esc(e.name)}</span>
+                    <span class="home-event-date">${dateStr}</span>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Personal tasks recap
+    const personalRecap = document.getElementById('home-personal-list');
+    if (personalRecap) {
+        const urgentPersonal = personalTasks.filter(t => {
+            if (!t.name) return false;
+            const isHigh = t.urgency === '1' || t.urgency === '2';
+            let isDueSoon = false;
+            if (t.date) {
+                const due = new Date(t.date + 'T00:00:00');
+                isDueSoon = (due - today) / (1000*60*60*24) <= 7;
+            }
+            return isHigh || isDueSoon;
+        }).sort((a, b) => {
+            const ua = parseInt(a.urgency || '4');
+            const ub = parseInt(b.urgency || '4');
+            if (ua !== ub) return ua - ub;
+            return (a.date || '').localeCompare(b.date || '');
+        });
+        if (urgentPersonal.length === 0) {
+            personalRecap.innerHTML = '<div class="home-empty">No urgent personal tasks</div>';
+        } else {
+            personalRecap.innerHTML = urgentPersonal.map(t => {
+                const u = getUrgencyInfo(t.urgency || '4');
+                const cat = getPersonalCategoryInfo(t.category);
+                const dateStr = t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+                return `<div class="home-task-row">
+                    <span class="urgency-dot" style="background:${u.color}" title="${u.label}"></span>
+                    <span class="home-event-badge" style="background:${cat.color}">${esc(t.category || 'Personal')}</span>
+                    <span class="home-task-name">${esc(t.name)}</span>
+                    <span class="home-task-date">${dateStr}</span>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Family events on home
+    const familyList = document.getElementById('home-family-events-list');
+    if (familyList) {
+        const upcomingFamily = familyEvents.filter(e => {
+            if (!e.name) return false;
+            if (!e.dateFrom) return true; // show events without dates
+            const d = new Date(e.dateFrom + 'T00:00:00');
+            return d >= today;
+        }).sort((a, b) => (a.dateFrom || '').localeCompare(b.dateFrom || ''));
+        if (upcomingFamily.length === 0) {
+            familyList.innerHTML = '<div class="home-empty">No upcoming family events</div>';
+        } else {
+            familyList.innerHTML = upcomingFamily.map(e => {
+                let dateStr = '';
+                if (e.dateFrom) {
+                    dateStr = new Date(e.dateFrom + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+                    if (e.dateTo) dateStr += ' – ' + new Date(e.dateTo + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+                }
+                return `<div class="home-event-row">
+                    <span class="home-event-badge" style="background:#2980b9">Family</span>
                     <span class="home-event-name">${esc(e.name)}</span>
                     <span class="home-event-date">${dateStr}</span>
                 </div>`;

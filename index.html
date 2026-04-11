@@ -132,6 +132,8 @@
                         <span class="material-icons-outlined chevron">expand_more</span>
                     </div>
                     <div class="link-group-body">
+                        <a href="#" onclick="showPage('personal-tasks'); return false;" class="sidebar-link"><span class="material-icons-outlined">checklist</span> Personal Tasks</a>
+                        <a href="#" onclick="showPage('family-events'); return false;" class="sidebar-link"><span class="material-icons-outlined">family_restroom</span> Family Events</a>
                         <a href="https://uw-ta.onrender.com/" target="_blank" class="sidebar-link"><span class="material-icons-outlined">sports_esports</span> UW-TA</a>
                         <a href="https://www.kronoscript.net" target="_blank" class="sidebar-link"><span class="material-icons-outlined">auto_fix_high</span> Kronoscript</a>
                         <a href="#" target="_blank" class="sidebar-link"><span class="material-icons-outlined">palette</span> Canvas</a>
@@ -216,6 +218,24 @@
                                     </div>
                                 </a>
                             </div>
+                        </div>
+
+                        <!-- Personal Recap -->
+                        <div class="home-box" id="home-personal">
+                            <div class="home-box-header">
+                                <h3>Personal Tasks</h3>
+                                <a href="#" onclick="showPage('personal-tasks'); return false;" class="home-box-link">View All &rarr;</a>
+                            </div>
+                            <div id="home-personal-list" class="home-list"></div>
+                        </div>
+
+                        <!-- Family Events -->
+                        <div class="home-box" id="home-family-events">
+                            <div class="home-box-header">
+                                <h3>Family Events</h3>
+                                <a href="#" onclick="showPage('family-events'); return false;" class="home-box-link">View All &rarr;</a>
+                            </div>
+                            <div id="home-family-events-list" class="home-list"></div>
                         </div>
 
                         <!-- Top News -->
@@ -344,6 +364,59 @@
                                 </tr>
                             </thead>
                             <tbody id="events-3p-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Personal Tasks Page -->
+                <div class="page" id="page-personal-tasks">
+                    <div class="page-header">
+                        <h1><span class="material-icons-outlined">checklist</span> Personal Tasks</h1>
+                        <button class="btn-primary" onclick="addPersonalTask()"><span class="material-icons-outlined">add</span> Add Task</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="personal-tasks-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-check"></th>
+                                    <th>Urgency</th>
+                                    <th>Category</th>
+                                    <th>Task Name</th>
+                                    <th>Date Due</th>
+                                    <th>Useful Link</th>
+                                    <th>Who</th>
+                                    <th>Notes</th>
+                                    <th class="col-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="personal-tasks-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Family Events Page -->
+                <div class="page" id="page-family-events">
+                    <div class="page-header">
+                        <h1><span class="material-icons-outlined">family_restroom</span> Family Events</h1>
+                        <button class="btn-primary" onclick="addFamilyEvent()"><span class="material-icons-outlined">add</span> Add Event</button>
+                    </div>
+                    <div class="table-container">
+                        <table id="family-events-table">
+                            <thead>
+                                <tr>
+                                    <th>Date From</th>
+                                    <th>Date To</th>
+                                    <th>Event Name</th>
+                                    <th>Where</th>
+                                    <th>Hotel</th>
+                                    <th>Car</th>
+                                    <th>Transportation</th>
+                                    <th>Who</th>
+                                    <th>Notes</th>
+                                    <th class="col-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="family-events-body"></tbody>
                         </table>
                     </div>
                 </div>
