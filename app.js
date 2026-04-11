@@ -705,22 +705,43 @@ function buildFamilyWhoSelect(selected, idx) {
 // ===== Family Events =====
 const FAMILY_EVENT_COLORS = ['#2980b9','#e74c3c','#27ae60','#8e44ad','#e67e22','#c2185b','#00897b','#5c6bc0','#f57c00','#6d4c41'];
 
-function renderFamilyCalendar() {
-    const container = document.getElementById('family-calendar-strip');
-    if (!container) return;
-    const now = new Date();
+function hexToPastel(hex) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},0.12)`;
+}
+
+// Biweekly work-day pattern: cycle starts Thu Apr 9 2026, repeats every 14 days
+// Days within cycle: offset 0(Thu),1(Fri),2(Sat),5(Tue),6(Wed)
+const BIWEEKLY_ANCHOR = new Date(2026, 3, 9); // April 9, 2026
+const BIWEEKLY_OFFSETS = [0, 1, 2, 5, 6];
+function isBiweeklyDay(year, month, day) {
+    const d = new Date(year, month, day);
+    const diff = Math.round((d - BIWEEKLY_ANCHOR) / 86400000);
+    if (diff < 0) return false;
+    const cycleDay = diff % 14;
+    return BIWEEKLY_OFFSETS.includes(cycleDay);
+}
+
+function getFamilyEventColors() {
     const eventColors = {};
     let colorIdx = 0;
-    // Assign a color to each event by name
     familyEvents.forEach(ev => {
         if (ev.name && !eventColors[ev.name]) {
             eventColors[ev.name] = FAMILY_EVENT_COLORS[colorIdx % FAMILY_EVENT_COLORS.length];
             colorIdx++;
         }
     });
+    return eventColors;
+}
+
+function renderFamilyCalendar() {
+    const container = document.getElementById('family-calendar-strip');
+    if (!container) return;
+    const now = new Date();
+    const eventColors = getFamilyEventColors();
 
     let html = '<div class="fam-cal-strip">';
-    for (let m = 0; m < 6; m++) {
+    for (let m = 0; m < 10; m++) {
         const viewDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
         const year = viewDate.getFullYear();
         const month = viewDate.getMonth();
@@ -752,8 +773,10 @@ function renderFamilyCalendar() {
             const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
             const evts = dayEvents[day] || [];
             const bgColor = evts.length ? eventColors[evts[0].name] : '';
-            const tooltipText = evts.map(e => e.name + (e.where ? ' @ ' + e.where : '')).join('\\n');
-            html += `<div class="fam-cal-day${isToday ? ' fam-cal-today' : ''}${evts.length ? ' fam-cal-has-event' : ''}" ${bgColor ? `style="background:${bgColor};color:#fff"` : ''} ${evts.length ? `title="${esc(tooltipText)}"` : ''}>
+            const bw = isBiweeklyDay(year, month, day);
+            let style = '';
+            if (bgColor) style = `background:${bgColor};color:#fff`;
+            html += `<div class="fam-cal-day${isToday ? ' fam-cal-today' : ''}${evts.length ? ' fam-cal-has-event' : ''}${bw ? ' fam-cal-bw' : ''}" ${style ? `style="${style}"` : ''}>
                 ${day}
                 ${evts.length ? `<div class="fam-cal-tip">${evts.map(e => `<div><strong>${esc(e.name)}</strong>${e.where ? '<br>' + esc(e.where) : ''}${e.who ? '<br><em>' + esc(e.who) + '</em>' : ''}</div>`).join('')}</div>` : ''}
             </div>`;
@@ -765,17 +788,23 @@ function renderFamilyCalendar() {
     for (const [name, color] of Object.entries(eventColors)) {
         html += `<span class="fam-cal-legend-item"><span class="fam-cal-legend-dot" style="background:${color}"></span>${esc(name)}</span>`;
     }
+    html += '<span class="fam-cal-legend-item"><span class="fam-cal-legend-dot" style="background:transparent;border:2px solid #e74c3c"></span>Work days</span>';
     html += '</div></div>';
     container.innerHTML = html;
 }
 
 function renderFamilyEvents() {
     renderFamilyCalendar();
+    const eventColors = getFamilyEventColors();
     const tbody = document.getElementById('family-events-body');
     tbody.innerHTML = '';
     familyEvents.forEach((ev, idx) => {
+        const evColor = ev.name ? eventColors[ev.name] : '';
+        const rowBg = evColor ? hexToPastel(evColor) : '';
         const tr = document.createElement('tr');
+        if (rowBg) tr.style.background = rowBg;
         tr.innerHTML = `
+            ${evColor ? `<td style="width:4px;padding:0;background:${evColor}"></td>` : '<td style="width:4px;padding:0"></td>'}
             <td><input type="date" value="${esc(ev.dateFrom)}" onchange="updateFamilyEvent(${idx},'dateFrom',this.value)"></td>
             <td><input type="date" value="${esc(ev.dateTo)}" onchange="updateFamilyEvent(${idx},'dateTo',this.value)"></td>
             <td><input type="text" value="${esc(ev.name)}" placeholder="Event name..." onchange="updateFamilyEvent(${idx},'name',this.value)"></td>
@@ -802,6 +831,9 @@ function addFamilyEvent() {
 function updateFamilyEvent(idx, field, value) {
     familyEvents[idx][field] = value;
     debounceSave(STORAGE_KEYS.familyEvents, familyEvents);
+    if (field === 'dateFrom' || field === 'dateTo' || field === 'name' || field === 'who' || field === 'where') {
+        renderFamilyEvents();
+    }
 }
 
 function deleteFamilyEvent(idx) {
