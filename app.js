@@ -252,6 +252,48 @@ const DEFAULT_PRODUCTS = [
     { name: 'SAP on Azure', pmm: 'Ankita Bhalla, Sanjay Satheesh', pmmManager: '', sme: '', globalSkilling: '', updates: [], events: [] }
 ];
 
+const DEFAULT_PERSONAL_TASKS = [];
+const DEFAULT_FAMILY_EVENTS = [];
+
+// ===== Task Categories & Colors =====
+const TASK_CATEGORIES = [
+    { value: 'Content', color: '#2e7d32', bg: '#e8f5e9' },
+    { value: 'GTM', color: '#e67e22', bg: '#fef5ec' },
+    { value: 'Planning', color: '#9b59b6', bg: '#f5eef8' },
+    { value: 'Sync', color: '#27ae60', bg: '#eafaf1' },
+    { value: 'Event', color: '#e74c3c', bg: '#fdedec' },
+    { value: 'Presentations', color: '#c2185b', bg: '#fce4ec' },
+    { value: 'Other', color: '#7f8c8d', bg: '#f2f4f4' }
+];
+
+const VENDOR_NAMES = ['Amy', 'Mindy', 'Erica'];
+
+const PERSONAL_CATEGORIES = [
+    { value: 'Event', color: '#e74c3c', bg: '#fdedec' },
+    { value: 'Personal', color: '#3498db', bg: '#ebf5fb' },
+    { value: 'Finance', color: '#27ae60', bg: '#eafaf1' },
+    { value: 'Church', color: '#8e44ad', bg: '#f5eef8' },
+    { value: 'Entertainment', color: '#e67e22', bg: '#fef5ec' },
+    { value: 'Family', color: '#2980b9', bg: '#d6eaf8' },
+    { value: 'UW', color: '#4b2e83', bg: '#ece3f5' },
+    { value: 'Moglie', color: '#c2185b', bg: '#fce4ec' }
+];
+
+const PERSONAL_WHO = ['Marco', 'Daniela', 'David', 'Andrew', 'Nicholas', 'Simon', 'Sara', 'Jackson', 'Maria', 'Egidio', 'Liana', 'Papi', 'Altri'];
+
+const URGENCY_LEVELS = [
+    { value: '1', label: 'Urgent 1', color: '#e74c3c', bg: '#fdedec' },
+    { value: '2', label: 'Urgent 2', color: '#f39c12', bg: '#fef9e7' },
+    { value: '3', label: 'Urgent 3', color: '#27ae60', bg: '#eafaf1' },
+    { value: '4', label: 'Urgent 4', color: '#3498db', bg: '#ebf5fb' }
+];
+
+const EVENT_PRIORITIES = [
+    { value: 'P1', label: 'P1', color: '#e74c3c', bg: '#fdedec' },
+    { value: 'P2', label: 'P2', color: '#f39c12', bg: '#fef9e7' },
+    { value: 'P3', label: 'P3', color: '#27ae60', bg: '#eafaf1' }
+];
+
 // ===== State =====
 let tasks = loadData(STORAGE_KEYS.tasks, DEFAULT_TASKS);
 let archivedTasks = loadData(STORAGE_KEYS.archivedTasks, []);
@@ -284,42 +326,6 @@ function toggleGroup(el) {
     el.classList.toggle('collapsed');
     el.nextElementSibling.classList.toggle('open');
 }
-
-// ===== Task Categories & Colors =====
-const TASK_CATEGORIES = [
-    { value: 'Content', color: '#2e7d32', bg: '#e8f5e9' },
-    { value: 'GTM', color: '#e67e22', bg: '#fef5ec' },
-    { value: 'Planning', color: '#9b59b6', bg: '#f5eef8' },
-    { value: 'Sync', color: '#27ae60', bg: '#eafaf1' },
-    { value: 'Event', color: '#e74c3c', bg: '#fdedec' },
-    { value: 'Presentations', color: '#c2185b', bg: '#fce4ec' },
-    { value: 'Other', color: '#7f8c8d', bg: '#f2f4f4' }
-];
-
-const VENDOR_NAMES = ['Amy', 'Mindy', 'Erica'];
-
-const PERSONAL_CATEGORIES = [
-    { value: 'Event', color: '#e74c3c', bg: '#fdedec' },
-    { value: 'Personal', color: '#3498db', bg: '#ebf5fb' },
-    { value: 'Finance', color: '#27ae60', bg: '#eafaf1' },
-    { value: 'Church', color: '#8e44ad', bg: '#f5eef8' },
-    { value: 'Entertainment', color: '#e67e22', bg: '#fef5ec' },
-    { value: 'Family', color: '#2980b9', bg: '#d6eaf8' },
-    { value: 'UW', color: '#4b2e83', bg: '#ece3f5' },
-    { value: 'Moglie', color: '#c2185b', bg: '#fce4ec' }
-];
-
-const PERSONAL_WHO = ['Marco', 'Daniela', 'David', 'Andrew', 'Nicholas', 'Simon', 'Sara', 'Jackson', 'Maria', 'Egidio', 'Liana', 'Papi', 'Altri'];
-
-const DEFAULT_PERSONAL_TASKS = [];
-const DEFAULT_FAMILY_EVENTS = [];
-
-const URGENCY_LEVELS = [
-    { value: '1', label: 'Urgent 1', color: '#e74c3c', bg: '#fdedec' },
-    { value: '2', label: 'Urgent 2', color: '#f39c12', bg: '#fef9e7' },
-    { value: '3', label: 'Urgent 3', color: '#27ae60', bg: '#eafaf1' },
-    { value: '4', label: 'Urgent 4', color: '#3498db', bg: '#ebf5fb' }
-];
 
 function getUrgencyInfo(val) {
     return URGENCY_LEVELS.find(u => u.value === val) || URGENCY_LEVELS[3];
@@ -698,6 +704,17 @@ function deleteFamilyEvent(idx) {
 }
 
 // ===== Events =====
+function getEventPriorityInfo(val) {
+    return EVENT_PRIORITIES.find(p => p.value === val) || EVENT_PRIORITIES[2];
+}
+
+function buildEventPrioritySelect(type, idx, selected) {
+    const p = getEventPriorityInfo(selected);
+    return `<select class="urgency-select" style="background:${p.color};color:#fff" onchange="updateEvent('${type}',${idx},'priority',this.value); this.style.background=getEventPriorityInfo(this.value).color;">
+        ${EVENT_PRIORITIES.map(pr => `<option value="${pr.value}" ${pr.value === selected ? 'selected' : ''} style="background:#fff;color:#333">${pr.label}</option>`).join('')}
+    </select>`;
+}
+
 function renderEvents(type) {
     const data = type === '1p' ? events1p : events3p;
     const tbody = document.getElementById(`events-${type}-body`);
@@ -712,6 +729,7 @@ function renderEvents(type) {
         }
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td>${buildEventPrioritySelect(type, idx, ev.priority || 'P3')}</td>
             <td><input type="date" value="${esc(ev.date)}" onchange="updateEvent('${type}',${idx},'date',this.value)"></td>
             <td><input type="text" value="${esc(ev.name)}" placeholder="Event name..." onchange="updateEvent('${type}',${idx},'name',this.value)"></td>
             <td><input type="text" value="${esc(ev.hero)}" placeholder="Product..." onchange="updateEvent('${type}',${idx},'hero',this.value)"></td>
@@ -728,7 +746,7 @@ function renderEvents(type) {
 }
 
 function addEvent(type) {
-    const ev = { id: Date.now(), date: '', name: '', hero: '', pmm: '', contact: '', plan: '', activity: '', notes: '' };
+    const ev = { id: Date.now(), priority: 'P3', date: '', name: '', hero: '', pmm: '', contact: '', plan: '', activity: '', notes: '' };
     if (type === '1p') { events1p.push(ev); saveData(STORAGE_KEYS.events1p, events1p); }
     else { events3p.push(ev); saveData(STORAGE_KEYS.events3p, events3p); }
     renderEvents(type);
@@ -1014,7 +1032,9 @@ function renderHomeDashboard() {
         } else {
             eventsList.innerHTML = upcoming.map(e => {
                 const dateStr = new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+                const pri = getEventPriorityInfo(e.priority || 'P3');
                 return `<div class="home-event-row">
+                    <span class="urgency-dot" style="background:${pri.color}" title="${pri.label}"></span>
                     <span class="home-event-badge">${e.type}</span>
                     <span class="home-event-name">${esc(e.name)}</span>
                     <span class="home-event-date">${dateStr}</span>
@@ -1127,25 +1147,30 @@ function renderNews() {
 function renderStocks() {
     const container = document.getElementById('home-stocks-list');
     if (!container) return;
-    // Use TradingView Mini Symbol Overview widgets
     const stocks = ['MSFT', 'AAPL', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
-    container.innerHTML = `
-        <div class="tradingview-widget-container">
-            <div id="tradingview-widget"></div>
-        </div>
-    `;
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-    script.async = true;
-    script.textContent = JSON.stringify({
+    // Create a fresh widget container
+    container.innerHTML = '';
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = 'tradingview-widget-container';
+    const innerDiv = document.createElement('div');
+    widgetDiv.appendChild(innerDiv);
+    container.appendChild(widgetDiv);
+
+    const config = {
         symbols: stocks.map(s => ({ proName: 'NASDAQ:' + s, title: s })),
         showSymbolLogo: true,
         colorTheme: 'light',
         isTransparent: true,
         displayMode: 'regular',
         locale: 'en'
-    });
-    container.querySelector('.tradingview-widget-container').appendChild(script);
+    };
+
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+    script.async = true;
+    script.textContent = JSON.stringify(config);
+    widgetDiv.appendChild(script);
 }
 
 // ===== Auth =====

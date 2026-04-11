@@ -427,6 +427,16 @@ body {
     letter-spacing: 0.5px;
 }
 .home-box-header h3 .material-icons-outlined { font-size: 20px; color: var(--accent); }
+
+/* Per-box header colors */
+#home-urgent-tasks .home-box-header { background: #fce4ec; } /* pink */
+#home-events .home-box-header { background: #fff3e0; } /* orange */
+.home-box-wide .home-box-header { background: #e8f5e9; } /* light green for Quick Links */
+#home-personal .home-box-header { background: #e3f2fd; } /* light blue */
+#home-family-events .home-box-header { background: #fffde7; } /* yellow */
+#home-news .home-box-header { background: #ede7f6; } /* lavender */
+#home-stocks .home-box-header { background: #e0f7fa; } /* cyan */
+
 .home-box-link {
     font-size: 12px;
     color: var(--accent);
@@ -563,6 +573,11 @@ body {
     flex-shrink: 0;
     min-width: 55px;
     text-align: center;
+}
+.home-news-cat {
+    font-size: 11px;
+    color: #888;
+    flex-shrink: 0;
 }
 .home-news-title {
     flex: 1;
