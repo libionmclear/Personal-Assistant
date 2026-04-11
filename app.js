@@ -110,6 +110,24 @@ const TASK_CATEGORIES = [
 
 const VENDOR_NAMES = ['Amy', 'Mindy', 'Erica'];
 
+const URGENCY_LEVELS = [
+    { value: '1', label: 'Urgent 1', color: '#e74c3c', bg: '#fdedec' },
+    { value: '2', label: 'Urgent 2', color: '#f39c12', bg: '#fef9e7' },
+    { value: '3', label: 'Urgent 3', color: '#27ae60', bg: '#eafaf1' },
+    { value: '4', label: 'Urgent 4', color: '#3498db', bg: '#ebf5fb' }
+];
+
+function getUrgencyInfo(val) {
+    return URGENCY_LEVELS.find(u => u.value === val) || URGENCY_LEVELS[3];
+}
+
+function buildUrgencySelect(selected, idx) {
+    const u = getUrgencyInfo(selected);
+    return `<select class="urgency-select" style="background:${u.color};color:#fff" onchange="updateTask(${idx},'urgency',this.value); this.style.background=getUrgencyInfo(this.value).color;">
+        ${URGENCY_LEVELS.map(l => `<option value="${l.value}" ${l.value === selected ? 'selected' : ''} style="background:#fff;color:#333">${l.label}</option>`).join('')}
+    </select>`;
+}
+
 function getCategoryInfo(cat) {
     return TASK_CATEGORIES.find(c => c.value === cat) || TASK_CATEGORIES[5];
 }
@@ -149,6 +167,7 @@ function renderTasks() {
         tr.style.background = task.category ? cat.bg : '';
         tr.innerHTML = `
             <td class="col-check"><input type="checkbox" class="task-checkbox" onchange="completeTask(${idx})" title="Mark complete"></td>
+            <td>${buildUrgencySelect(task.urgency || '4', idx)}</td>
             <td>${buildCategorySelect(task.category || 'Other', idx)}</td>
             <td><input type="text" value="${esc(task.name)}" placeholder="Task name..." onchange="updateTask(${idx},'name',this.value)"></td>
             <td><input type="text" value="${esc(task.who)}" placeholder="Person..." onchange="updateTask(${idx},'who',this.value)"></td>
@@ -210,6 +229,7 @@ function renderArchivedToggle() {
                 <table>
                     <thead>
                         <tr>
+                            <th>Urgency</th>
                             <th>Category</th>
                             <th>Task Name</th>
                             <th>Who</th>
@@ -226,6 +246,7 @@ function renderArchivedToggle() {
                             const aCat = getCategoryInfo(t.category);
                             return `
                             <tr class="archived-row" style="background:${t.category ? aCat.bg : ''}">
+                                <td><span class="urgency-badge" style="background:${getUrgencyInfo(t.urgency || '4').color}">${getUrgencyInfo(t.urgency || '4').label}</span></td>
                                 <td><span class="cat-badge" style="background:${aCat.color}">${esc(t.category || 'Other')}</span></td>
                                 <td>${esc(t.name)}</td>
                                 <td>${esc(t.who)}</td>
@@ -255,7 +276,7 @@ function toggleArchived() {
 }
 
 function addTask() {
-    tasks.push({ id: Date.now(), name: '', who: '', date: '', link: '', vendor: '', category: 'Other', notes: '' });
+    tasks.push({ id: Date.now(), name: '', who: '', date: '', link: '', vendor: '', category: 'Other', notes: '', urgency: '4' });
     saveData(STORAGE_KEYS.tasks, tasks);
     renderTasks();
     const inputs = document.querySelectorAll('#tasks-body tr:last-child input');
@@ -522,13 +543,79 @@ document.addEventListener('click', function(e) {
     else if (tableId === 'events-3p-table') renderEvents('3p');
 });
 
-// ===== Stats =====
+// ===== Stats & Home =====
 function updateStats() {
     const el = id => document.getElementById(id);
     if (el('stat-tasks')) el('stat-tasks').textContent = tasks.filter(t => t.name).length;
     if (el('stat-events-1p')) el('stat-events-1p').textContent = events1p.length;
     if (el('stat-events-3p')) el('stat-events-3p').textContent = events3p.length;
     if (el('stat-products')) el('stat-products').textContent = products.length;
+    renderHomeDashboard();
+}
+
+function renderHomeDashboard() {
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Urgent tasks: urgency 1-2 or due within 7 days or overdue
+    const urgentTasks = tasks.filter(t => {
+        if (!t.name) return false;
+        const isHighUrgency = t.urgency === '1' || t.urgency === '2';
+        let isDueSoon = false;
+        if (t.date) {
+            const due = new Date(t.date + 'T00:00:00');
+            isDueSoon = (due - today) / (1000*60*60*24) <= 7;
+        }
+        return isHighUrgency || isDueSoon;
+    }).sort((a, b) => {
+        const ua = parseInt(a.urgency || '4');
+        const ub = parseInt(b.urgency || '4');
+        if (ua !== ub) return ua - ub;
+        return (a.date || '').localeCompare(b.date || '');
+    });
+
+    const urgentList = document.getElementById('home-urgent-list');
+    if (urgentList) {
+        if (urgentTasks.length === 0) {
+            urgentList.innerHTML = '<div class="home-empty">No urgent tasks — nice!</div>';
+        } else {
+            urgentList.innerHTML = urgentTasks.map(t => {
+                const u = getUrgencyInfo(t.urgency || '4');
+                const alert = getDateAlert(t.date);
+                const dateStr = t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+                return `<div class="home-task-row">
+                    <span class="urgency-dot" style="background:${u.color}" title="${u.label}"></span>
+                    <span class="home-task-name">${esc(t.name)}</span>
+                    <span class="home-task-date">${dateStr} ${alert}</span>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Upcoming events (next 3 months, combined 1P + 3P)
+    const threeMonths = new Date(today);
+    threeMonths.setMonth(threeMonths.getMonth() + 3);
+    const allEvents = [...events1p.map(e => ({...e, type:'1P'})), ...events3p.map(e => ({...e, type:'3P'}))];
+    const upcoming = allEvents.filter(e => {
+        if (!e.date || !e.name) return false;
+        const d = new Date(e.date + 'T00:00:00');
+        return d >= today && d <= threeMonths;
+    }).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+    const eventsList = document.getElementById('home-events-list');
+    if (eventsList) {
+        if (upcoming.length === 0) {
+            eventsList.innerHTML = '<div class="home-empty">No events in the next 3 months</div>';
+        } else {
+            eventsList.innerHTML = upcoming.map(e => {
+                const dateStr = new Date(e.date + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric'});
+                return `<div class="home-event-row">
+                    <span class="home-event-badge">${e.type}</span>
+                    <span class="home-event-name">${esc(e.name)}</span>
+                    <span class="home-event-date">${dateStr}</span>
+                </div>`;
+            }).join('');
+        }
+    }
 }
 
 // ===== Open in Browser =====

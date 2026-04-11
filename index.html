@@ -147,33 +147,84 @@
                         <h1>Good <span id="greeting-time">morning</span>, Marco</h1>
                         <p class="subtitle" id="current-date"></p>
                     </div>
-                    <div class="quick-stats">
-                        <div class="stat-card stat-tasks" onclick="showPage('tasks')">
-                            <div class="stat-icon"><span class="material-icons-outlined">task_alt</span></div>
-                            <div class="stat-info">
-                                <span class="stat-number" id="stat-tasks">0</span>
-                                <span class="stat-label">Open Tasks</span>
+
+                    <div class="home-grid">
+                        <!-- Urgent Tasks Box -->
+                        <div class="home-box home-box-wide" id="home-urgent-tasks">
+                            <div class="home-box-header">
+                                <h3><span class="material-icons-outlined">priority_high</span> Urgent Tasks</h3>
+                                <a href="#" onclick="showPage('tasks'); return false;" class="home-box-link">View All &rarr;</a>
+                            </div>
+                            <div id="home-urgent-list" class="home-list"></div>
+                        </div>
+
+                        <!-- Upcoming Events Box -->
+                        <div class="home-box" id="home-events">
+                            <div class="home-box-header">
+                                <h3><span class="material-icons-outlined">event</span> Upcoming Events</h3>
+                            </div>
+                            <div id="home-events-list" class="home-list"></div>
+                        </div>
+
+                        <!-- Quick Stats -->
+                        <div class="home-box" id="home-stats-box">
+                            <div class="home-box-header">
+                                <h3><span class="material-icons-outlined">insights</span> Overview</h3>
+                            </div>
+                            <div class="quick-stats-mini">
+                                <div class="stat-mini" onclick="showPage('tasks')">
+                                    <span class="stat-mini-num" id="stat-tasks">0</span>
+                                    <span class="stat-mini-label">Tasks</span>
+                                </div>
+                                <div class="stat-mini" onclick="showPage('1p-events')">
+                                    <span class="stat-mini-num" id="stat-events-1p">0</span>
+                                    <span class="stat-mini-label">1P Events</span>
+                                </div>
+                                <div class="stat-mini" onclick="showPage('3p-events')">
+                                    <span class="stat-mini-num" id="stat-events-3p">0</span>
+                                    <span class="stat-mini-label">3P Events</span>
+                                </div>
+                                <div class="stat-mini" onclick="showPage('hero-products')">
+                                    <span class="stat-mini-num" id="stat-products">14</span>
+                                    <span class="stat-mini-label">Products</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="stat-card stat-1p" onclick="showPage('1p-events')">
-                            <div class="stat-icon"><span class="material-icons-outlined">event</span></div>
-                            <div class="stat-info">
-                                <span class="stat-number" id="stat-events-1p">0</span>
-                                <span class="stat-label">1P Events</span>
+
+                        <!-- News & Links -->
+                        <div class="home-box home-box-wide">
+                            <div class="home-box-header">
+                                <h3><span class="material-icons-outlined">language</span> Quick Links</h3>
                             </div>
-                        </div>
-                        <div class="stat-card stat-3p" onclick="showPage('3p-events')">
-                            <div class="stat-icon"><span class="material-icons-outlined">groups</span></div>
-                            <div class="stat-info">
-                                <span class="stat-number" id="stat-events-3p">0</span>
-                                <span class="stat-label">3P Events</span>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-products" onclick="showPage('hero-products')">
-                            <div class="stat-icon"><span class="material-icons-outlined">inventory_2</span></div>
-                            <div class="stat-info">
-                                <span class="stat-number" id="stat-products">14</span>
-                                <span class="stat-label">Hero Products</span>
+                            <div class="home-links-row">
+                                <a href="https://www.corriere.it" target="_blank" class="home-link-card">
+                                    <img src="https://www.google.com/s2/favicons?sz=64&domain=corriere.it" alt="" class="home-link-favicon">
+                                    <div class="home-link-info">
+                                        <span class="home-link-name">Corriere della Sera</span>
+                                        <span class="home-link-url">corriere.it</span>
+                                    </div>
+                                </a>
+                                <a href="https://www.gazzetta.it" target="_blank" class="home-link-card">
+                                    <img src="https://www.google.com/s2/favicons?sz=64&domain=gazzetta.it" alt="" class="home-link-favicon">
+                                    <div class="home-link-info">
+                                        <span class="home-link-name">Gazzetta dello Sport</span>
+                                        <span class="home-link-url">gazzetta.it</span>
+                                    </div>
+                                </a>
+                                <a href="https://www.wsj.com" target="_blank" class="home-link-card">
+                                    <img src="https://www.google.com/s2/favicons?sz=64&domain=wsj.com" alt="" class="home-link-favicon">
+                                    <div class="home-link-info">
+                                        <span class="home-link-name">Wall Street Journal</span>
+                                        <span class="home-link-url">wsj.com</span>
+                                    </div>
+                                </a>
+                                <a href="https://uw-ta.onrender.com/" target="_blank" class="home-link-card">
+                                    <img src="https://www.google.com/s2/favicons?sz=64&domain=onrender.com" alt="" class="home-link-favicon">
+                                    <div class="home-link-info">
+                                        <span class="home-link-name">UW-TA</span>
+                                        <span class="home-link-url">uw-ta.onrender.com</span>
+                                    </div>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -190,6 +241,7 @@
                             <thead>
                                 <tr>
                                     <th class="col-check"></th>
+                                    <th data-sort="urgency">Urgency <span class="sort-icon">↕</span></th>
                                     <th data-sort="category">Category <span class="sort-icon">↕</span></th>
                                     <th data-sort="name">Task Name <span class="sort-icon">↕</span></th>
                                     <th data-sort="who">Who Is It For <span class="sort-icon">↕</span></th>
