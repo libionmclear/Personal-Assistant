@@ -660,6 +660,65 @@ function setGreeting() {
     }
 }
 
+// ===== Top News via RSS =====
+async function renderNews() {
+    const container = document.getElementById('home-news-list');
+    if (!container) return;
+    container.innerHTML = '<div class="home-empty">Loading news...</div>';
+    try {
+        // Use rss2json to parse RSS feeds
+        const feeds = [
+            { name: 'Reuters', url: 'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.reuters.com%2Freuters%2FtechnologyNews' },
+            { name: 'CNBC', url: 'https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Fwww.cnbc.com%2Fid%2F100727362%2Fdevice%2Frss%2Frss.html' }
+        ];
+        const results = await Promise.allSettled(feeds.map(f => fetch(f.url).then(r => r.json())));
+        const articles = [];
+        results.forEach((r, i) => {
+            if (r.status === 'fulfilled' && r.value.items) {
+                r.value.items.slice(0, 3).forEach(item => {
+                    articles.push({ title: item.title, link: item.link, source: feeds[i].name, date: item.pubDate });
+                });
+            }
+        });
+        if (articles.length === 0) {
+            container.innerHTML = '<div class="home-empty">Unable to load news</div>';
+            return;
+        }
+        // Sort by date and take top 6
+        articles.sort((a, b) => new Date(b.date) - new Date(a.date));
+        container.innerHTML = articles.slice(0, 6).map(a =>
+            `<a href="${esc(a.link)}" target="_blank" class="home-news-row">
+                <span class="home-news-source">${esc(a.source)}</span>
+                <span class="home-news-title">${esc(a.title)}</span>
+            </a>`
+        ).join('');
+    } catch {
+        container.innerHTML = '<div class="home-empty">Unable to load news</div>';
+    }
+}
+
+// ===== Tech Stocks via Yahoo Finance widget =====
+function renderStocks() {
+    const container = document.getElementById('home-stocks-list');
+    if (!container) return;
+    const stocks = [
+        { symbol: 'MSFT', name: 'Microsoft' },
+        { symbol: 'AAPL', name: 'Apple' },
+        { symbol: 'GOOGL', name: 'Alphabet' },
+        { symbol: 'AMZN', name: 'Amazon' },
+        { symbol: 'NVDA', name: 'NVIDIA' },
+        { symbol: 'META', name: 'Meta' },
+        { symbol: 'TSLA', name: 'Tesla' }
+    ];
+    container.innerHTML = stocks.map(s =>
+        `<a href="https://finance.yahoo.com/quote/${s.symbol}" target="_blank" class="home-stock-row">
+            <span class="home-stock-symbol">${s.symbol}</span>
+            <span class="home-stock-name">${s.name}</span>
+            <span class="home-stock-chart"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fquery1.finance.yahoo.com%2Fv8%2Ffinance%2Fchart%2F${s.symbol}&query=%24.chart.result%5B0%5D.meta.regularMarketPrice&label=%24&color=blue&style=flat-square" alt="" onerror="this.style.display='none'"></span>
+        </a>`
+    ).join('');
+}
+
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.link-group-header').forEach((h, i) => {
@@ -668,4 +727,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setGreeting();
     showPage('welcome');
+    renderNews();
+    renderStocks();
 });
