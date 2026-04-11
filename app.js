@@ -1204,105 +1204,34 @@ function setGreeting() {
     }
 }
 
-// ===== Top News via RSS =====
-async function renderNews() {
-    const container = document.getElementById('home-news-list');
-    if (!container) return;
-    container.innerHTML = '<div class="home-empty">Loading news...</div>';
-    try {
-        const feeds = [
-            { name: 'Google', rss: 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en' },
-            { name: 'BBC', rss: 'https://feeds.bbci.co.uk/news/technology/rss.xml' }
-        ];
-        const articles = [];
-        for (const feed of feeds) {
-            try {
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(feed.rss)}`;
-                const resp = await fetch(proxyUrl);
-                if (!resp.ok) continue;
-                const text = await resp.text();
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(text, 'text/xml');
-                const items = xml.querySelectorAll('item');
-                items.forEach((item, i) => {
-                    if (i >= 4) return;
-                    const title = item.querySelector('title')?.textContent || '';
-                    const link = item.querySelector('link')?.textContent || '';
-                    const pubDate = item.querySelector('pubDate')?.textContent || '';
-                    if (title) articles.push({ title, link, source: feed.name, date: pubDate });
-                });
-            } catch { /* skip failed feed */ }
-        }
-        if (articles.length === 0) {
-            container.innerHTML = '<div class="home-empty">Unable to load news — <a href="https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB" target="_blank" style="color:var(--accent)">open Google News</a></div>';
-            return;
-        }
-        container.innerHTML = articles.slice(0, 8).map(a =>
-            `<a href="${esc(a.link)}" target="_blank" class="home-news-row">
-                <span class="home-news-source">${esc(a.source)}</span>
-                <span class="home-news-title">${esc(a.title)}</span>
-            </a>`
-        ).join('');
-    } catch {
-        container.innerHTML = '<div class="home-empty">Unable to load news</div>';
-    }
+// ===== Top News =====
+function renderNews() {
+    // News is now rendered via embedded RSS widget in HTML — no JS needed
 }
 
-// ===== Tech Stocks =====
-async function renderStocks() {
+// ===== Tech Stocks via TradingView =====
+function renderStocks() {
     const container = document.getElementById('home-stocks-list');
     if (!container) return;
-    const stocks = [
-        { symbol: 'MSFT', name: 'Microsoft' },
-        { symbol: 'AAPL', name: 'Apple' },
-        { symbol: 'GOOGL', name: 'Alphabet' },
-        { symbol: 'AMZN', name: 'Amazon' },
-        { symbol: 'NVDA', name: 'NVIDIA' },
-        { symbol: 'META', name: 'Meta' },
-        { symbol: 'TSLA', name: 'Tesla' }
-    ];
-
-    // Try fetching live quotes from Yahoo via allorigins proxy
-    try {
-        const symbols = stocks.map(s => s.symbol).join(',');
-        const yUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}&fields=regularMarketPrice,regularMarketChange,regularMarketChangePercent`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yUrl)}`;
-        const resp = await fetch(proxyUrl);
-        if (resp.ok) {
-            const data = await resp.json();
-            if (data.quoteResponse && data.quoteResponse.result) {
-                const quotes = data.quoteResponse.result;
-                container.innerHTML = stocks.map(s => {
-                    const q = quotes.find(r => r.symbol === s.symbol);
-                    if (!q) return renderStockFallback(s);
-                    const price = q.regularMarketPrice?.toFixed(2) || '—';
-                    const change = q.regularMarketChange?.toFixed(2) || '0';
-                    const pct = q.regularMarketChangePercent?.toFixed(2) || '0';
-                    const isUp = parseFloat(change) >= 0;
-                    const color = isUp ? '#22c55e' : '#ef4444';
-                    const arrow = isUp ? '▲' : '▼';
-                    return `<a href="https://finance.yahoo.com/quote/${s.symbol}" target="_blank" class="home-stock-row">
-                        <span class="home-stock-symbol">${s.symbol}</span>
-                        <span class="home-stock-name">${s.name}</span>
-                        <span class="home-stock-price">$${price}</span>
-                        <span class="home-stock-change" style="color:${color}">${arrow} ${change} (${pct}%)</span>
-                    </a>`;
-                }).join('');
-                return;
-            }
-        }
-    } catch { /* fallback below */ }
-
-    // Fallback: static links to Yahoo Finance
-    container.innerHTML = stocks.map(s => renderStockFallback(s)).join('');
-}
-
-function renderStockFallback(s) {
-    return `<a href="https://finance.yahoo.com/quote/${s.symbol}" target="_blank" class="home-stock-row">
-        <span class="home-stock-symbol">${s.symbol}</span>
-        <span class="home-stock-name">${s.name}</span>
-        <span class="home-stock-price" style="color:#888">View →</span>
-    </a>`;
+    // Use TradingView Mini Symbol Overview widgets
+    const stocks = ['MSFT', 'AAPL', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA'];
+    container.innerHTML = `
+        <div class="tradingview-widget-container">
+            <div id="tradingview-widget"></div>
+        </div>
+    `;
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+    script.async = true;
+    script.textContent = JSON.stringify({
+        symbols: stocks.map(s => ({ proName: 'NASDAQ:' + s, title: s })),
+        showSymbolLogo: true,
+        colorTheme: 'light',
+        isTransparent: true,
+        displayMode: 'regular',
+        locale: 'en'
+    });
+    container.querySelector('.tradingview-widget-container').appendChild(script);
 }
 
 // ===== Init =====

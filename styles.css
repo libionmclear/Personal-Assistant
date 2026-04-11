@@ -513,6 +513,13 @@ body {
     height: 18px;
     vertical-align: middle;
 }
+.home-stocks-widget {
+    min-height: 50px;
+    overflow: hidden;
+}
+.home-stocks-widget .tradingview-widget-container {
+    margin: -8px -8px 0;
+}
 
 /* Urgency select */
 .urgency-select {
