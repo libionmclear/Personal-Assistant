@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marco's Personal Assistant</title>
-    <link rel="stylesheet" href="styles.css?v=20260411b">
+    <link rel="stylesheet" href="styles.css?v=20260412">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 </head>
@@ -42,6 +42,12 @@
                 <a href="https://msit.powerbi.com/groups/me/apps/70f54bbb-4c7f-4d8d-b7e5-969829116cc6/reports/68fad35f-af18-4843-8349-0b0374d9f95b?ctid=72f988bf-86f1-41af-91ab-2d7cd011db47&experience=power-bi" target="_blank" class="neon-btn neon-cyan">
                     <span class="material-icons-outlined">dashboard</span> Dashboard
                 </a>
+                <a href="#" class="neon-btn neon-cyan" onclick="showPage('1p-events'); return false;">
+                    <span class="material-icons-outlined">event</span> 1P Events
+                </a>
+                <a href="#" class="neon-btn neon-cyan" onclick="showPage('3p-events'); return false;">
+                    <span class="material-icons-outlined">groups</span> 3P Events
+                </a>
                 <a href="#" class="neon-btn neon-purple" onclick="showPage('personal-tasks'); return false;">
                     <span class="material-icons-outlined">checklist</span> Personal Tasks
                 </a>
@@ -67,7 +73,7 @@
                 <a href="#" class="icon-btn" onclick="handleLogout(); return false;" title="Sign out">
                     <span class="material-icons-outlined">logout</span>
                 </a>
-                <div class="app-title">Marco's Assistant <span style="font-size:9px;opacity:0.4;font-family:monospace">v4.11b</span></div>
+                <div class="app-title">Marco's Assistant <span style="font-size:9px;opacity:0.4;font-family:monospace">v4.12</span></div>
             </div>
         </header>
 
@@ -171,6 +177,8 @@
                     <div class="link-group-body">
                         <a href="#" onclick="showPage('personal-tasks'); return false;" class="sidebar-link"><span class="material-icons-outlined">checklist</span> Personal Tasks</a>
                         <a href="#" onclick="showPage('family-events'); return false;" class="sidebar-link"><span class="material-icons-outlined">family_restroom</span> Family Events</a>
+                        <a href="#" onclick="showPage('finance'); return false;" class="sidebar-link"><span class="material-icons-outlined">account_balance_wallet</span> Finance Tracker</a>
+                        <a href="#" onclick="showPage('calendar'); return false;" class="sidebar-link"><span class="material-icons-outlined">calendar_month</span> Calendar</a>
                         <a href="https://uw-ta.onrender.com/" target="_blank" class="sidebar-link"><span class="material-icons-outlined">sports_esports</span> UW-TA</a>
                         <a href="https://www.kronoscript.net" target="_blank" class="sidebar-link"><span class="material-icons-outlined">auto_fix_high</span> Kronoscript</a>
                         <a href="#" target="_blank" class="sidebar-link"><span class="material-icons-outlined">palette</span> Canvas</a>
@@ -281,12 +289,12 @@
                                 <h3>Top News</h3>
                             </div>
                             <div id="home-news-list" class="home-list">
-                                <a href="https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US" target="_blank" class="home-news-row"><span class="home-news-source">Google</span><span class="home-news-cat">Tech · news.google.com</span><span class="home-news-title">Top Tech News →</span></a>
-                                <a href="https://www.bbc.com/news/technology" target="_blank" class="home-news-row"><span class="home-news-source">BBC</span><span class="home-news-cat">Technology · bbc.com</span><span class="home-news-title">Technology News →</span></a>
-                                <a href="https://www.cnbc.com/technology/" target="_blank" class="home-news-row"><span class="home-news-source">CNBC</span><span class="home-news-cat">Tech & Business · cnbc.com</span><span class="home-news-title">Tech & Business →</span></a>
-                                <a href="https://www.reuters.com/technology/" target="_blank" class="home-news-row"><span class="home-news-source">Reuters</span><span class="home-news-cat">Technology · reuters.com</span><span class="home-news-title">Technology →</span></a>
-                                <a href="https://www.theverge.com/" target="_blank" class="home-news-row"><span class="home-news-source">Verge</span><span class="home-news-cat">Consumer Tech · theverge.com</span><span class="home-news-title">Latest Tech →</span></a>
-                                <a href="https://techcrunch.com/" target="_blank" class="home-news-row"><span class="home-news-source">TC</span><span class="home-news-cat">Startups & AI · techcrunch.com</span><span class="home-news-title">TechCrunch →</span></a>
+                                <a href="https://news.google.com/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtVnVHZ0pWVXlnQVAB?hl=en-US" target="_blank" class="home-news-row"><span class="home-news-source">Google</span><span class="home-news-title">Top Tech News →</span></a>
+                                <a href="https://www.bbc.com/news/technology" target="_blank" class="home-news-row"><span class="home-news-source">BBC</span><span class="home-news-title">Technology News →</span></a>
+                                <a href="https://www.cnbc.com/technology/" target="_blank" class="home-news-row"><span class="home-news-source">CNBC</span><span class="home-news-title">Tech & Business →</span></a>
+                                <a href="https://www.reuters.com/technology/" target="_blank" class="home-news-row"><span class="home-news-source">Reuters</span><span class="home-news-title">Technology →</span></a>
+                                <a href="https://www.theverge.com/" target="_blank" class="home-news-row"><span class="home-news-source">Verge</span><span class="home-news-title">Latest Tech →</span></a>
+                                <a href="https://techcrunch.com/" target="_blank" class="home-news-row"><span class="home-news-source">TC</span><span class="home-news-title">TechCrunch →</span></a>
                             </div>
                         </div>
 
@@ -466,6 +474,43 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- Finance Tracker Page -->
+                <div class="page" id="page-finance">
+                    <div class="page-header">
+                        <h1><span class="material-icons-outlined">account_balance_wallet</span> Finance Tracker</h1>
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <select id="finance-filter-who" class="vendor-select" onchange="filterFinance()" style="min-width:140px">
+                                <option value="">All People</option>
+                            </select>
+                            <button class="btn-primary" onclick="addFinanceRecord()"><span class="material-icons-outlined">add</span> Add Record</button>
+                        </div>
+                    </div>
+                    <div id="finance-totals" style="margin-bottom:16px;font-size:14px;padding:12px 18px;background:#fff;border-radius:8px;border:1px solid #e8eaed"></div>
+                    <div class="table-container">
+                        <table id="finance-table">
+                            <thead>
+                                <tr>
+                                    <th>Who</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Notes</th>
+                                    <th class="col-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="finance-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Calendar Page -->
+                <div class="page" id="page-calendar">
+                    <div class="page-header">
+                        <h1><span class="material-icons-outlined">calendar_month</span> Calendar</h1>
+                    </div>
+                    <div id="calendar-container" data-month-offset="0"></div>
+                </div>
             </main>
         </div>
     </div>
@@ -488,6 +533,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260411b"></script>
+    <script src="app.js?v=20260412"></script>
 </body>
 </html>

@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
     products: 'pa_products',
     personalTasks: 'pa_personal_tasks',
     archivedPersonalTasks: 'pa_personal_tasks_archived',
-    familyEvents: 'pa_family_events'
+    familyEvents: 'pa_family_events',
+    financeRecords: 'pa_finance_records'
 };
 
 let syncPending = false;
@@ -194,6 +195,7 @@ function reloadAllState() {
     personalTasks = loadData(STORAGE_KEYS.personalTasks, []);
     archivedPersonalTasks = loadData(STORAGE_KEYS.archivedPersonalTasks, []);
     familyEvents = loadData(STORAGE_KEYS.familyEvents, []);
+    financeRecords = loadData(STORAGE_KEYS.financeRecords, []);
     showPage('welcome');
 }
 
@@ -269,6 +271,7 @@ const TASK_CATEGORIES = [
     { value: 'Sync', color: '#27ae60', bg: '#eafaf1' },
     { value: 'Event', color: '#e74c3c', bg: '#fdedec' },
     { value: 'Presentations', color: '#c2185b', bg: '#fce4ec' },
+    { value: 'ROB', color: '#1565c0', bg: '#e3f2fd' },
     { value: 'Other', color: '#7f8c8d', bg: '#f2f4f4' }
 ];
 
@@ -282,16 +285,18 @@ const PERSONAL_CATEGORIES = [
     { value: 'Entertainment', color: '#e67e22', bg: '#fef5ec' },
     { value: 'Family', color: '#2980b9', bg: '#d6eaf8' },
     { value: 'UW', color: '#4b2e83', bg: '#ece3f5' },
-    { value: 'Moglie', color: '#c2185b', bg: '#fce4ec' }
+    { value: 'Moglie', color: '#c2185b', bg: '#fce4ec' },
+    { value: 'Home', color: '#6d4c41', bg: '#efebe9' },
+    { value: 'Car', color: '#455a64', bg: '#eceff1' }
 ];
 
 const PERSONAL_WHO = ['Marco', 'Daniela', 'David', 'Andrew', 'Nicholas', 'Simon', 'Sara', 'Jackson', 'Maria', 'Egidio', 'Liana', 'Papi', 'Altri'];
 
 const URGENCY_LEVELS = [
-    { value: '1', label: 'Urgent 1', color: '#e74c3c', bg: '#fdedec' },
-    { value: '2', label: 'Urgent 2', color: '#f39c12', bg: '#fef9e7' },
-    { value: '3', label: 'Urgent 3', color: '#27ae60', bg: '#eafaf1' },
-    { value: '4', label: 'Urgent 4', color: '#3498db', bg: '#ebf5fb' }
+    { value: '1', label: 'P1', color: '#e74c3c', bg: '#fdedec' },
+    { value: '2', label: 'P2', color: '#f39c12', bg: '#fef9e7' },
+    { value: '3', label: 'P3', color: '#27ae60', bg: '#eafaf1' },
+    { value: '4', label: 'P4', color: '#3498db', bg: '#ebf5fb' }
 ];
 
 const EVENT_PRIORITIES = [
@@ -309,6 +314,7 @@ let products = loadData(STORAGE_KEYS.products, DEFAULT_PRODUCTS);
 let personalTasks = loadData(STORAGE_KEYS.personalTasks, DEFAULT_PERSONAL_TASKS);
 let archivedPersonalTasks = loadData(STORAGE_KEYS.archivedPersonalTasks, []);
 let familyEvents = loadData(STORAGE_KEYS.familyEvents, DEFAULT_FAMILY_EVENTS);
+let financeRecords = loadData(STORAGE_KEYS.financeRecords, []);
 let currentSort = { table: null, column: null, dir: 'asc' };
 
 // ===== Page Navigation =====
@@ -323,6 +329,8 @@ function showPage(pageId) {
         if (pageId === '3p-events') renderEvents('3p');
         if (pageId === 'personal-tasks') renderPersonalTasks();
         if (pageId === 'family-events') renderFamilyEvents();
+        if (pageId === 'finance') renderFinance();
+        if (pageId === 'calendar') renderCalendar();
         if (pageId === 'welcome') updateStats();
     }
 }
@@ -668,6 +676,13 @@ function deletePersonalTask(idx) {
     renderPersonalTasks();
 }
 
+function buildFamilyWhoSelect(selected, idx) {
+    return `<select class="vendor-select" onchange="updateFamilyEvent(${idx},'who',this.value)">
+        <option value="" ${!selected ? 'selected' : ''}>—</option>
+        ${PERSONAL_WHO.map(w => `<option value="${w}" ${w === selected ? 'selected' : ''}>${w}</option>`).join('')}
+    </select>`;
+}
+
 // ===== Family Events =====
 function renderFamilyEvents() {
     const tbody = document.getElementById('family-events-body');
@@ -682,7 +697,7 @@ function renderFamilyEvents() {
             <td><input type="text" value="${esc(ev.hotel)}" placeholder="Hotel..." onchange="updateFamilyEvent(${idx},'hotel',this.value)"></td>
             <td><input type="text" value="${esc(ev.car)}" placeholder="Car..." onchange="updateFamilyEvent(${idx},'car',this.value)"></td>
             <td><input type="text" value="${esc(ev.transportation)}" placeholder="Details..." onchange="updateFamilyEvent(${idx},'transportation',this.value)"></td>
-            <td><input type="text" value="${esc(ev.who)}" placeholder="Who..." onchange="updateFamilyEvent(${idx},'who',this.value)"></td>
+            <td>${buildFamilyWhoSelect(ev.who, idx)}</td>
             <td><textarea rows="1" placeholder="Notes..." onchange="updateFamilyEvent(${idx},'notes',this.value)">${esc(ev.notes)}</textarea></td>
             <td><button class="btn-delete" onclick="deleteFamilyEvent(${idx})" title="Delete"><span class="material-icons-outlined">delete</span></button></td>
         `;
@@ -943,6 +958,152 @@ function deleteProductSub(prodIdx, arr, subIdx) {
     saveData(STORAGE_KEYS.products, products);
     if (arr === 'updates') renderProductUpdates(prodIdx);
     else renderProductEvents(prodIdx);
+}
+
+// ===== Finance Tracker =====
+function renderFinance() {
+    const filterWho = document.getElementById('finance-filter-who');
+    if (filterWho && filterWho.options.length <= 1) {
+        filterWho.innerHTML = '<option value="">All</option>' + PERSONAL_WHO.map(w => `<option value="${w}">${w}</option>`).join('');
+    }
+    const filterVal = filterWho ? filterWho.value : '';
+    const tbody = document.getElementById('finance-body');
+    tbody.innerHTML = '';
+    let totalDebit = 0, totalCredit = 0;
+    financeRecords.forEach((rec, idx) => {
+        if (filterVal && rec.who !== filterVal) return;
+        const amt = parseFloat(rec.amount) || 0;
+        if (rec.type === 'Debit') totalDebit += amt;
+        else totalCredit += amt;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${buildFinanceWhoSelect(rec.who, idx)}</td>
+            <td><select class="cat-select" style="background:${rec.type === 'Debit' ? '#e74c3c' : '#27ae60'};color:#fff" onchange="updateFinance(${idx},'type',this.value); this.style.background=this.value==='Debit'?'#e74c3c':'#27ae60';">
+                <option value="Debit" ${rec.type === 'Debit' ? 'selected' : ''} style="background:#fff;color:#333">Debit</option>
+                <option value="Credit" ${rec.type === 'Credit' ? 'selected' : ''} style="background:#fff;color:#333">Credit</option>
+            </select></td>
+            <td><input type="number" step="0.01" value="${esc(rec.amount)}" placeholder="0.00" onchange="updateFinance(${idx},'amount',this.value)" style="width:100px"></td>
+            <td><input type="date" value="${esc(rec.date)}" onchange="updateFinance(${idx},'date',this.value)"></td>
+            <td><textarea rows="1" placeholder="Notes..." onchange="updateFinance(${idx},'notes',this.value)">${esc(rec.notes || '')}</textarea></td>
+            <td><button class="btn-delete" onclick="deleteFinance(${idx})" title="Delete"><span class="material-icons-outlined">delete</span></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    // Totals
+    const totalEl = document.getElementById('finance-totals');
+    if (totalEl) {
+        const balance = totalCredit - totalDebit;
+        const balColor = balance >= 0 ? '#27ae60' : '#e74c3c';
+        totalEl.innerHTML = `<span style="color:#e74c3c;font-weight:700">Debit: $${totalDebit.toFixed(2)}</span> &nbsp;|&nbsp; <span style="color:#27ae60;font-weight:700">Credit: $${totalCredit.toFixed(2)}</span> &nbsp;|&nbsp; <span style="color:${balColor};font-weight:700">Balance: $${balance.toFixed(2)}</span>`;
+    }
+}
+
+function buildFinanceWhoSelect(selected, idx) {
+    return `<select class="vendor-select" onchange="updateFinance(${idx},'who',this.value)">
+        <option value="" ${!selected ? 'selected' : ''}>—</option>
+        ${PERSONAL_WHO.map(w => `<option value="${w}" ${w === selected ? 'selected' : ''}>${w}</option>`).join('')}
+    </select>`;
+}
+
+function addFinanceRecord() {
+    financeRecords.push({ id: Date.now(), who: '', type: 'Debit', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+    saveData(STORAGE_KEYS.financeRecords, financeRecords);
+    renderFinance();
+}
+
+function updateFinance(idx, field, value) {
+    financeRecords[idx][field] = value;
+    debounceSave(STORAGE_KEYS.financeRecords, financeRecords);
+    if (field === 'type' || field === 'amount' || field === 'who') renderFinance();
+}
+
+function deleteFinance(idx) {
+    financeRecords.splice(idx, 1);
+    saveData(STORAGE_KEYS.financeRecords, financeRecords);
+    renderFinance();
+}
+
+function filterFinance() { renderFinance(); }
+
+// ===== Calendar View =====
+function renderCalendar() {
+    const container = document.getElementById('calendar-container');
+    if (!container) return;
+    const now = new Date();
+    const monthOffset = parseInt(container.dataset.monthOffset || '0');
+    const viewDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth();
+    const monthName = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = new Date(year, month, 1).getDay();
+
+    // Gather all events for this month
+    const monthEvents = {};
+    const addToDay = (day, label, color) => {
+        if (!monthEvents[day]) monthEvents[day] = [];
+        monthEvents[day].push({ label, color });
+    };
+    // 1P/3P events
+    [...events1p, ...events3p].forEach(e => {
+        if (!e.date || !e.name) return;
+        const d = new Date(e.date + 'T00:00:00');
+        if (d.getFullYear() === year && d.getMonth() === month) addToDay(d.getDate(), e.name, '#0078d4');
+    });
+    // Family events (range)
+    familyEvents.forEach(e => {
+        if (!e.name) return;
+        const from = e.dateFrom ? new Date(e.dateFrom + 'T00:00:00') : null;
+        const to = e.dateTo ? new Date(e.dateTo + 'T00:00:00') : from;
+        if (!from) return;
+        for (let d = new Date(from); d <= (to || from); d.setDate(d.getDate() + 1)) {
+            if (d.getFullYear() === year && d.getMonth() === month) addToDay(d.getDate(), e.name, '#2980b9');
+        }
+    });
+    // Tasks with due dates
+    tasks.forEach(t => {
+        if (!t.date || !t.name) return;
+        const d = new Date(t.date + 'T00:00:00');
+        if (d.getFullYear() === year && d.getMonth() === month) addToDay(d.getDate(), t.name, '#e74c3c');
+    });
+    // Personal tasks
+    personalTasks.forEach(t => {
+        if (!t.date || !t.name) return;
+        const d = new Date(t.date + 'T00:00:00');
+        if (d.getFullYear() === year && d.getMonth() === month) addToDay(d.getDate(), t.name, '#8e44ad');
+    });
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    let html = `<div class="cal-header">
+        <button class="cal-nav" onclick="calNav(-1)"><span class="material-icons-outlined">chevron_left</span></button>
+        <h2 class="cal-month">${monthName}</h2>
+        <button class="cal-nav" onclick="calNav(1)"><span class="material-icons-outlined">chevron_right</span></button>
+    </div>
+    <div class="cal-grid">
+        <div class="cal-day-name">Sun</div><div class="cal-day-name">Mon</div><div class="cal-day-name">Tue</div><div class="cal-day-name">Wed</div><div class="cal-day-name">Thu</div><div class="cal-day-name">Fri</div><div class="cal-day-name">Sat</div>`;
+    // Empty cells before first day
+    for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell cal-empty"></div>';
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+        const evts = monthEvents[day] || [];
+        const tooltipLines = evts.map(e => e.label).join('\\n');
+        const dotHtml = evts.slice(0, 3).map(e => `<span class="cal-dot" style="background:${e.color}"></span>`).join('');
+        const extraDots = evts.length > 3 ? `<span class="cal-more">+${evts.length - 3}</span>` : '';
+        html += `<div class="cal-cell${isToday ? ' cal-today' : ''}${evts.length ? ' cal-has-event' : ''}" ${evts.length ? `title="${tooltipLines}"` : ''}>
+            <span class="cal-num">${day}</span>
+            <div class="cal-dots">${dotHtml}${extraDots}</div>
+            ${evts.length ? `<div class="cal-tooltip">${evts.map(e => `<div class="cal-tip-item" style="border-left:3px solid ${e.color}">${esc(e.label)}</div>`).join('')}</div>` : ''}
+        </div>`;
+    }
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function calNav(dir) {
+    const container = document.getElementById('calendar-container');
+    const cur = parseInt(container.dataset.monthOffset || '0');
+    container.dataset.monthOffset = cur + dir;
+    renderCalendar();
 }
 
 // ===== Sorting =====
