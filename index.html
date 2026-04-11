@@ -144,13 +144,13 @@
                 <!-- Welcome Page -->
                 <div class="page active" id="page-welcome">
                     <div class="welcome-header">
-                        <h1>Good <span id="greeting-time">morning</span>, Marco</h1>
+                        <h1><span id="greeting-time">Buongiorno</span>, Marco</h1>
                         <p class="subtitle" id="current-date"></p>
                     </div>
 
                     <div class="home-grid">
                         <!-- Urgent Tasks Box -->
-                        <div class="home-box home-box-wide" id="home-urgent-tasks">
+                        <div class="home-box" id="home-urgent-tasks">
                             <div class="home-box-header">
                                 <h3><span class="material-icons-outlined">priority_high</span> Urgent Tasks</h3>
                                 <a href="#" onclick="showPage('tasks'); return false;" class="home-box-link">View All &rarr;</a>
@@ -164,23 +164,6 @@
                                 <h3><span class="material-icons-outlined">event</span> Upcoming Events</h3>
                             </div>
                             <div id="home-events-list" class="home-list"></div>
-                        </div>
-
-                        <!-- Quick Stats -->
-                        <div class="home-box" id="home-stats-box">
-                            <div class="home-box-header">
-                                <h3><span class="material-icons-outlined">insights</span> Overview</h3>
-                            </div>
-                            <div class="quick-stats-mini">
-                                <div class="stat-mini" onclick="showPage('1p-events')">
-                                    <span class="stat-mini-num" id="stat-events-1p">0</span>
-                                    <span class="stat-mini-label">1P Events</span>
-                                </div>
-                                <div class="stat-mini" onclick="showPage('3p-events')">
-                                    <span class="stat-mini-num" id="stat-events-3p">0</span>
-                                    <span class="stat-mini-label">3P Events</span>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- News & Links -->

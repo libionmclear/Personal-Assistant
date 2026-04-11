@@ -100,11 +100,12 @@ function toggleGroup(el) {
 
 // ===== Task Categories & Colors =====
 const TASK_CATEGORIES = [
-    { value: 'Content', color: '#4a90d9', bg: '#eaf1fb' },
+    { value: 'Content', color: '#2e7d32', bg: '#e8f5e9' },
     { value: 'GTM', color: '#e67e22', bg: '#fef5ec' },
     { value: 'Planning', color: '#9b59b6', bg: '#f5eef8' },
     { value: 'Sync', color: '#27ae60', bg: '#eafaf1' },
     { value: 'Event', color: '#e74c3c', bg: '#fdedec' },
+    { value: 'Presentations', color: '#c2185b', bg: '#fce4ec' },
     { value: 'Other', color: '#7f8c8d', bg: '#f2f4f4' }
 ];
 
@@ -160,7 +161,14 @@ function buildVendorSelect(selected, idx) {
 function renderTasks() {
     const tbody = document.getElementById('tasks-body');
     tbody.innerHTML = '';
-    tasks.forEach((task, idx) => {
+    // Sort tasks by urgency (1 on top, then 2, 3, 4)
+    const sorted = tasks.map((t, i) => ({...t, _idx: i})).sort((a, b) => {
+        const ua = parseInt(a.urgency || '4');
+        const ub = parseInt(b.urgency || '4');
+        return ua - ub;
+    });
+    sorted.forEach((task) => {
+        const idx = task._idx;
         const cat = getCategoryInfo(task.category);
         const alert = getDateAlert(task.date);
         const tr = document.createElement('tr');
@@ -552,9 +560,6 @@ document.addEventListener('click', function(e) {
 
 // ===== Stats & Home =====
 function updateStats() {
-    const el = id => document.getElementById(id);
-    if (el('stat-events-1p')) el('stat-events-1p').textContent = events1p.length;
-    if (el('stat-events-3p')) el('stat-events-3p').textContent = events3p.length;
     renderHomeDashboard();
 }
 
@@ -638,14 +643,20 @@ document.addEventListener('click', function(e) {
 
 // ===== Greeting =====
 function setGreeting() {
-    const h = new Date().getHours();
-    const greeting = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+    // Convert to PST (UTC-7 / UTC-8 depending on DST)
+    const now = new Date();
+    const pstOptions = { timeZone: 'America/Los_Angeles', hour: 'numeric', hour12: false };
+    const pstHour = parseInt(new Intl.DateTimeFormat('en-US', pstOptions).format(now));
+    let greeting;
+    if (pstHour >= 21 || pstHour < 5) greeting = 'Buonanotte';
+    else if (pstHour >= 17) greeting = 'Buonasera';
+    else greeting = 'Buongiorno';
     const el = document.getElementById('greeting-time');
     if (el) el.textContent = greeting;
 
     const dateEl = document.getElementById('current-date');
     if (dateEl) {
-        dateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     }
 }
 
