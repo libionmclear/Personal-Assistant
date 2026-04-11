@@ -12,10 +12,13 @@ const STORAGE_KEYS = {
 
 const GITHUB_REPO = 'marcobellinimsft/Personal-Assistant';
 const GITHUB_DATA_FILE = 'data.json';
+const GITHUB_BACKUP_FILE = 'data-backup.json';
 const GITHUB_BRANCH = 'main';
 let githubSha = null; // track file SHA for updates
+let githubBackupSha = null;
 let syncPending = false;
 let syncTimer = null;
+let lastSyncTime = null;
 
 function loadData(key, defaults) {
     try {
@@ -26,14 +29,23 @@ function loadData(key, defaults) {
 
 function saveData(key, data) {
     localStorage.setItem(key, JSON.stringify(data));
+    // Also keep a localStorage backup snapshot
+    saveLocalBackup();
     scheduleSyncToGitHub();
+}
+
+function saveLocalBackup() {
+    try {
+        localStorage.setItem('pa_local_backup', JSON.stringify(getAllData()));
+        localStorage.setItem('pa_local_backup_time', new Date().toISOString());
+    } catch { /* quota exceeded — ok */ }
 }
 
 function scheduleSyncToGitHub() {
     syncPending = true;
     updateSyncIndicator('pending');
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => syncToGitHub(), 3000);
+    syncTimer = setTimeout(() => syncToGitHub(), 2000);
 }
 
 function getAllData() {
@@ -65,12 +77,13 @@ function setGitHubToken(token) {
 function updateSyncIndicator(state) {
     const el = document.getElementById('sync-status');
     if (!el) return;
+    const timeStr = lastSyncTime ? new Date(lastSyncTime).toLocaleTimeString() : '';
     if (state === 'syncing') {
         el.innerHTML = '<span class="material-icons-outlined spin">sync</span>';
         el.title = 'Syncing to GitHub...';
     } else if (state === 'ok') {
         el.innerHTML = '<span class="material-icons-outlined" style="color:#86efac">cloud_done</span>';
-        el.title = 'Synced to GitHub';
+        el.title = 'Synced to GitHub' + (timeStr ? ' at ' + timeStr : '');
     } else if (state === 'pending') {
         el.innerHTML = '<span class="material-icons-outlined" style="color:#fbbf24">cloud_upload</span>';
         el.title = 'Changes pending sync...';
@@ -81,6 +94,9 @@ function updateSyncIndicator(state) {
         el.innerHTML = '<span class="material-icons-outlined" style="color:#888">cloud_off</span>';
         el.title = 'No GitHub token — click settings to configure';
     }
+    // Update last sync display
+    const tsEl = document.getElementById('last-sync-time');
+    if (tsEl) tsEl.textContent = timeStr ? 'Last sync: ' + timeStr : '';
 }
 
 async function syncToGitHub() {
@@ -108,7 +124,11 @@ async function syncToGitHub() {
             const result = await resp.json();
             githubSha = result.content.sha;
             syncPending = false;
+            lastSyncTime = new Date().toISOString();
+            localStorage.setItem('pa_last_sync', lastSyncTime);
             updateSyncIndicator('ok');
+            // Also save a rolling backup to GitHub (async, don't block)
+            saveGitHubBackup();
         } else if (resp.status === 409) {
             // Conflict — re-fetch SHA and retry
             await loadFromGitHub();
@@ -166,6 +186,45 @@ function exportData() {
     a.download = `personal-assistant-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+}
+
+async function saveGitHubBackup() {
+    const token = getGitHubToken();
+    if (!token) return;
+    try {
+        // Get current backup SHA
+        if (!githubBackupSha) {
+            const check = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_BACKUP_FILE}?ref=${GITHUB_BRANCH}`, {
+                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+            });
+            if (check.ok) {
+                const f = await check.json();
+                githubBackupSha = f.sha;
+            }
+        }
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(getAllData(), null, 2))));
+        const body = {
+            message: 'Auto-backup ' + new Date().toISOString(),
+            content: content,
+            branch: GITHUB_BRANCH
+        };
+        if (githubBackupSha) body.sha = githubBackupSha;
+        const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_BACKUP_FILE}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify(body)
+        });
+        if (resp.ok) {
+            const result = await resp.json();
+            githubBackupSha = result.content.sha;
+        }
+    } catch (err) {
+        console.error('Backup save error:', err);
+    }
 }
 
 function importData() {
@@ -1210,6 +1269,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (i > 0) h.classList.add('collapsed');
     });
 
+    // Restore last sync time
+    lastSyncTime = localStorage.getItem('pa_last_sync');
+
     // Try loading from GitHub first
     const token = getGitHubToken();
     if (token) {
@@ -1223,4 +1285,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     showPage('welcome');
     renderNews();
     renderStocks();
+
+    // Periodic auto-sync every 60 seconds
+    setInterval(() => {
+        if (syncPending) syncToGitHub();
+    }, 60000);
+
+    // Sync before page close
+    window.addEventListener('beforeunload', () => {
+        if (syncPending) {
+            // Synchronous localStorage backup is always safe
+            saveLocalBackup();
+            // Best effort sync via sendBeacon
+            const token = getGitHubToken();
+            if (token) {
+                const data = JSON.stringify({
+                    message: 'Auto-sync on close ' + new Date().toISOString(),
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(getAllData(), null, 2)))),
+                    branch: GITHUB_BRANCH,
+                    ...(githubSha ? { sha: githubSha } : {})
+                });
+                navigator.sendBeacon && navigator.sendBeacon(
+                    `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`,
+                    new Blob([data], { type: 'application/json' })
+                );
+            }
+        }
+    });
+
+    // Sync when tab becomes visible again
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && getGitHubToken()) {
+            loadFromGitHub().then(loaded => {
+                if (loaded) reloadAllState();
+            });
+        }
+    });
 });
