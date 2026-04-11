@@ -45,7 +45,9 @@ function scheduleSyncToGitHub() {
     syncPending = true;
     updateSyncIndicator('pending');
     clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => syncToGitHub(), 2000);
+    syncTimer = setTimeout(() => {
+        syncToGitHub().catch(err => console.error('Sync error:', err));
+    }, 2000);
 }
 
 function getAllData() {
@@ -1243,7 +1245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Restore last sync time
     lastSyncTime = localStorage.getItem('pa_last_sync');
 
-    // Try loading from GitHub first
+    // Try loading from GitHub first (only on fresh load, not tab switch)
     const token = getGitHubToken();
     if (token) {
         const loaded = await loadFromGitHub();
@@ -1257,39 +1259,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderNews();
     renderStocks();
 
-    // Periodic auto-sync every 60 seconds
+    // Periodic auto-sync every 60 seconds (only pushes, never overwrites local)
     setInterval(() => {
         if (syncPending) syncToGitHub();
     }, 60000);
 
-    // Sync before page close
+    // Sync before page close — save to localStorage backup
     window.addEventListener('beforeunload', () => {
         if (syncPending) {
-            // Synchronous localStorage backup is always safe
             saveLocalBackup();
-            // Best effort sync via sendBeacon
+            // Try one last sync (may not complete but worth trying)
             const token = getGitHubToken();
-            if (token) {
-                const data = JSON.stringify({
-                    message: 'Auto-sync on close ' + new Date().toISOString(),
-                    content: btoa(unescape(encodeURIComponent(JSON.stringify(getAllData(), null, 2)))),
-                    branch: GITHUB_BRANCH,
-                    ...(githubSha ? { sha: githubSha } : {})
-                });
-                navigator.sendBeacon && navigator.sendBeacon(
-                    `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`,
-                    new Blob([data], { type: 'application/json' })
-                );
-            }
-        }
-    });
-
-    // Sync when tab becomes visible again
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && getGitHubToken()) {
-            loadFromGitHub().then(loaded => {
-                if (loaded) reloadAllState();
-            });
+            if (token) syncToGitHub();
         }
     });
 });
