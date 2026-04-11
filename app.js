@@ -10,6 +10,13 @@ const STORAGE_KEYS = {
     familyEvents: 'pa_family_events'
 };
 
+const GITHUB_REPO = 'marcobellinimsft/Personal-Assistant';
+const GITHUB_DATA_FILE = 'data.json';
+const GITHUB_BRANCH = 'main';
+let githubSha = null; // track file SHA for updates
+let syncPending = false;
+let syncTimer = null;
+
 function loadData(key, defaults) {
     try {
         const saved = localStorage.getItem(key);
@@ -19,6 +26,205 @@ function loadData(key, defaults) {
 
 function saveData(key, data) {
     localStorage.setItem(key, JSON.stringify(data));
+    scheduleSyncToGitHub();
+}
+
+function scheduleSyncToGitHub() {
+    syncPending = true;
+    updateSyncIndicator('pending');
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => syncToGitHub(), 3000);
+}
+
+function getAllData() {
+    const data = {};
+    for (const [name, key] of Object.entries(STORAGE_KEYS)) {
+        try { data[name] = JSON.parse(localStorage.getItem(key)) || []; }
+        catch { data[name] = []; }
+    }
+    data._savedAt = new Date().toISOString();
+    return data;
+}
+
+function applyAllData(data) {
+    for (const [name, key] of Object.entries(STORAGE_KEYS)) {
+        if (data[name] !== undefined) {
+            localStorage.setItem(key, JSON.stringify(data[name]));
+        }
+    }
+}
+
+function getGitHubToken() {
+    return localStorage.getItem('pa_github_token') || '';
+}
+
+function setGitHubToken(token) {
+    localStorage.setItem('pa_github_token', token);
+}
+
+function updateSyncIndicator(state) {
+    const el = document.getElementById('sync-status');
+    if (!el) return;
+    if (state === 'syncing') {
+        el.innerHTML = '<span class="material-icons-outlined spin">sync</span>';
+        el.title = 'Syncing to GitHub...';
+    } else if (state === 'ok') {
+        el.innerHTML = '<span class="material-icons-outlined" style="color:#86efac">cloud_done</span>';
+        el.title = 'Synced to GitHub';
+    } else if (state === 'pending') {
+        el.innerHTML = '<span class="material-icons-outlined" style="color:#fbbf24">cloud_upload</span>';
+        el.title = 'Changes pending sync...';
+    } else if (state === 'error') {
+        el.innerHTML = '<span class="material-icons-outlined" style="color:#f87171">cloud_off</span>';
+        el.title = 'Sync failed — check token in settings';
+    } else if (state === 'notoken') {
+        el.innerHTML = '<span class="material-icons-outlined" style="color:#888">cloud_off</span>';
+        el.title = 'No GitHub token — click settings to configure';
+    }
+}
+
+async function syncToGitHub() {
+    const token = getGitHubToken();
+    if (!token) { updateSyncIndicator('notoken'); return; }
+    updateSyncIndicator('syncing');
+    try {
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(getAllData(), null, 2))));
+        const body = {
+            message: 'Auto-sync data ' + new Date().toISOString(),
+            content: content,
+            branch: GITHUB_BRANCH
+        };
+        if (githubSha) body.sha = githubSha;
+        const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/vnd.github.v3+json'
+            },
+            body: JSON.stringify(body)
+        });
+        if (resp.ok) {
+            const result = await resp.json();
+            githubSha = result.content.sha;
+            syncPending = false;
+            updateSyncIndicator('ok');
+        } else if (resp.status === 409) {
+            // Conflict — re-fetch SHA and retry
+            await loadFromGitHub();
+            await syncToGitHub();
+        } else {
+            console.error('GitHub sync failed:', resp.status, await resp.text());
+            updateSyncIndicator('error');
+        }
+    } catch (err) {
+        console.error('GitHub sync error:', err);
+        updateSyncIndicator('error');
+    }
+}
+
+async function loadFromGitHub() {
+    const token = getGitHubToken();
+    if (!token) { updateSyncIndicator('notoken'); return false; }
+    try {
+        const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_DATA_FILE}?ref=${GITHUB_BRANCH}`, {
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        });
+        if (resp.ok) {
+            const file = await resp.json();
+            githubSha = file.sha;
+            const decoded = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ''))));
+            const data = JSON.parse(decoded);
+            applyAllData(data);
+            updateSyncIndicator('ok');
+            return true;
+        } else if (resp.status === 404) {
+            // File doesn't exist yet — will be created on first save
+            githubSha = null;
+            updateSyncIndicator('ok');
+            return false;
+        } else {
+            updateSyncIndicator('error');
+            return false;
+        }
+    } catch (err) {
+        console.error('GitHub load error:', err);
+        updateSyncIndicator('error');
+        return false;
+    }
+}
+
+function exportData() {
+    const data = getAllData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `personal-assistant-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                applyAllData(data);
+                reloadAllState();
+                scheduleSyncToGitHub();
+                alert('Data imported successfully!');
+            } catch { alert('Invalid JSON file.'); }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function reloadAllState() {
+    tasks = loadData(STORAGE_KEYS.tasks, DEFAULT_TASKS);
+    archivedTasks = loadData(STORAGE_KEYS.archivedTasks, []);
+    events1p = loadData(STORAGE_KEYS.events1p, DEFAULT_EVENTS_1P);
+    events3p = loadData(STORAGE_KEYS.events3p, DEFAULT_EVENTS_3P);
+    products = loadData(STORAGE_KEYS.products, DEFAULT_PRODUCTS);
+    personalTasks = loadData(STORAGE_KEYS.personalTasks, []);
+    archivedPersonalTasks = loadData(STORAGE_KEYS.archivedPersonalTasks, []);
+    familyEvents = loadData(STORAGE_KEYS.familyEvents, []);
+    showPage('welcome');
+}
+
+function showSettings() {
+    const modal = document.getElementById('settings-modal');
+    const tokenInput = document.getElementById('github-token-input');
+    tokenInput.value = getGitHubToken();
+    modal.style.display = 'flex';
+}
+
+function closeSettings() {
+    document.getElementById('settings-modal').style.display = 'none';
+}
+
+function saveSettings() {
+    const token = document.getElementById('github-token-input').value.trim();
+    setGitHubToken(token);
+    closeSettings();
+    if (token) {
+        loadFromGitHub().then(loaded => {
+            if (loaded) reloadAllState();
+            else syncToGitHub(); // push current data if file doesn't exist
+        });
+    } else {
+        updateSyncIndicator('notoken');
+    }
 }
 
 // ===== Helpers =====
@@ -999,10 +1205,19 @@ function renderStocks() {
 }
 
 // ===== Init =====
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.link-group-header').forEach((h, i) => {
         if (i > 0) h.classList.add('collapsed');
     });
+
+    // Try loading from GitHub first
+    const token = getGitHubToken();
+    if (token) {
+        const loaded = await loadFromGitHub();
+        if (loaded) reloadAllState();
+    } else {
+        updateSyncIndicator('notoken');
+    }
 
     setGreeting();
     showPage('welcome');
