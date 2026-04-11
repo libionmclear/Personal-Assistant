@@ -306,7 +306,8 @@ const PERSONAL_CATEGORIES = [
     { value: 'UW', color: '#4b2e83', bg: '#ece3f5' },
     { value: 'Moglie', color: '#c2185b', bg: '#fce4ec' },
     { value: 'Home', color: '#6d4c41', bg: '#efebe9' },
-    { value: 'Car', color: '#455a64', bg: '#eceff1' }
+    { value: 'Car', color: '#455a64', bg: '#eceff1' },
+    { value: 'Medical', color: '#d32f2f', bg: '#fdecea' }
 ];
 
 const PERSONAL_WHO = ['Marco', 'Daniela', 'David', 'Andrew', 'Nicholas', 'Simon', 'Sara', 'Jackson', 'Maria', 'Egidio', 'Liana', 'Papi', 'Altri'];
