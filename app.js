@@ -130,16 +130,10 @@ async function loadFromServer() {
         if (resp.ok) {
             const data = await resp.json();
             if (data && Object.keys(data).length > 0 && data.tasks) {
-                // Only apply server data if it's newer than local backup
-                const localBackupTime = localStorage.getItem('pa_local_backup_time');
-                const serverTime = data._savedAt;
-                if (localBackupTime && serverTime && new Date(localBackupTime) > new Date(serverTime)) {
-                    // Local is newer — push local data to server instead
-                    updateSyncIndicator('pending');
-                    syncToServer();
-                    return false;
-                }
+                // Always prefer server data on initial load
                 applyAllData(data);
+                lastSyncTime = data._savedAt || new Date().toISOString();
+                localStorage.setItem('pa_last_sync', lastSyncTime);
                 updateSyncIndicator('ok');
                 return true;
             }
