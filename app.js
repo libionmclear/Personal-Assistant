@@ -8,7 +8,8 @@ const STORAGE_KEYS = {
     personalTasks: 'pa_personal_tasks',
     archivedPersonalTasks: 'pa_personal_tasks_archived',
     familyEvents: 'pa_family_events',
-    financeRecords: 'pa_finance_records'
+    financeRecords: 'pa_finance_records',
+    sidebarLinks: 'pa_sidebar_links'
 };
 
 let syncPending = false;
@@ -55,7 +56,7 @@ function getAllData() {
     // Use in-memory state variables — they always have data (including defaults)
     return {
         tasks, archivedTasks, events1p, events3p, products,
-        personalTasks, archivedPersonalTasks, familyEvents, financeRecords,
+        personalTasks, archivedPersonalTasks, familyEvents, financeRecords, sidebarLinks,
         _savedAt: new Date().toISOString()
     };
 }
@@ -215,6 +216,8 @@ function reloadAllState() {
     archivedPersonalTasks = loadData(STORAGE_KEYS.archivedPersonalTasks, []);
     familyEvents = loadData(STORAGE_KEYS.familyEvents, []);
     financeRecords = loadData(STORAGE_KEYS.financeRecords, []);
+    sidebarLinks = loadData(STORAGE_KEYS.sidebarLinks, DEFAULT_SIDEBAR_LINKS);
+    renderSidebar();
     showPage('welcome');
 }
 
@@ -282,6 +285,57 @@ const DEFAULT_PRODUCTS = [
 const DEFAULT_PERSONAL_TASKS = [];
 const DEFAULT_FAMILY_EVENTS = [];
 
+const DEFAULT_SIDEBAR_LINKS = [
+    { id: 'g-skilling', icon: 'school', title: 'Skilling VTeam', items: [
+        { id: 'l-1', icon: 'slideshow', label: 'Leadership Walking Deck', url: 'https://microsoft.sharepoint.com/:p:/t/AzureSolutionPlaysMarketingTeam/cQqb7i3ZkO8dSYjNOimJuNuREgUCtxLtWKpASy4q0N6PuYVj9g' },
+        { id: 'l-2', icon: 'loop', label: 'Loop', url: 'https://loop.cloud.microsoft/' },
+        { id: 'l-3', icon: 'code', label: 'GitHub Skilling Site', url: 'https://github.com/akiyaani2/azure-solutions-skilling' },
+        { id: 'l-4', icon: 'folder_shared', label: 'Skilling SharePoint', url: 'https://microsoft.sharepoint.com/:f:/t/AzureSolutionPlaysMarketingTeam/IgDR9vsrGrzUQ5IKayqWVvOSAXFNoppTk8nl_cr8LGJLzr0?e=L5aufN' },
+        { id: 'l-5', icon: 'filter_alt', label: 'Skilling Funnel', url: 'https://onedrive.cloud.microsoft/:p:/a@l77xg24h/S/cQpouaHRprJqRJfs340cI-DDEgUCBknL2J032D--OOApoDst4w' }
+    ]},
+    { id: 'g-rob', icon: 'assessment', title: 'ROB', items: [
+        { id: 'l-6', icon: 'bar_chart', label: 'MMR', url: '#' },
+        { id: 'l-7', icon: 'note', label: 'Takeshi Updates', url: 'onenote:https://microsoft.sharepoint.com/teams/AzureSolutionPlaysMarketingTeam/SiteAssets/Azure%20Solution%20Plays%20Marketing%20Team%20Notebook/Takeshi%20Updates.one' }
+    ]},
+    { id: 'g-org', icon: 'account_tree', title: 'Org Chart', items: [
+        { id: 'l-8', icon: 'corporate_fare', label: 'CC&AI Marketing Org Chart', url: 'https://microsoft.sharepoint.com/:p:/t/CommercialCloudAIMktgROB/EYTIthwe7vpIjCnz_2kSsTYBCzKYpFngBc8jV0elDv--OQ' }
+    ]},
+    { id: 'g-planning', icon: 'edit_calendar', title: 'Planning', items: [
+        { id: 'l-9', icon: 'table_chart', label: 'Current Plan XLS', url: 'https://microsoft-my.sharepoint.com/:x:/p/marcobellini/cQo9bmRfvmFmRovaZIOqipN6EgUC4aps4MjbWv1j5bSjLE_EYg' },
+        { id: 'l-10', icon: 'slideshow', label: 'FY27 Greenlight One Pager', url: 'https://microsoft.sharepoint.com/:p:/r/sites/FY27PlanningCommercialCloudandAI/FY27%20Planning%20CCAI%20Documents/FY27%20Greenlight%20-%20CAIP%20Marketing/CAIP%20Marketing%20Planning%20Greenlight%20.pptx' },
+        { id: 'l-11', icon: 'grid_view', label: 'FY27 Placemats', url: 'https://microsoft.sharepoint.com/:p:/t/AzureSolutionPlaysMarketingTeam/cQqtJWnaGOcGRLGzJ43zsZqFEgUCNLuS9OecmkX9wTT3M1FPZQ' },
+        { id: 'l-12', icon: 'track_changes', label: 'FY27 Placemats Tracker', url: 'https://microsoft.sharepoint.com/:p:/t/AzureSolutionPlaysMarketingTeam/cQqtJWnaGOcGRLGzJ43zsZqFEgUCNLuS9OecmkX9wTT3M1FPZQ' }
+    ]},
+    { id: 'g-mm', icon: 'cloud', title: 'M&M Skilling', items: [
+        { id: 'l-13', icon: 'web', label: 'Landing Page', url: 'https://aka.ms/MigrateModernize2026' },
+        { id: 'l-14', icon: 'menu_book', label: 'Microsoft Learn', url: 'https://learn.microsoft.com/en-us/users/marcobellini-8438/' },
+        { id: 'l-15', icon: 'videocam', label: 'VTD - Virtual Training Days', url: 'https://aka.ms/MIgrateModernizeVTD' },
+        { id: 'l-16', icon: 'emoji_events', label: 'Challenges', url: 'https://learn.microsoft.com/en-us/users/marcobellini-8438/challenges?source=learn' },
+        { id: 'l-17', icon: 'podcasts', label: 'Reactor Channel', url: '#' },
+        { id: 'l-18', icon: 'edit_note', label: 'Blog Opportunities', url: 'https://onedrive.cloud.microsoft/:x:/a@8pv38am2/S/cQruuyZWS4ypQJnLxBHXlZglEgUCkDelWyndM_Hf9rLzW8kmvA' },
+        { id: 'l-19', icon: 'event', label: '1P Events', page: '1p-events' },
+        { id: 'l-20', icon: 'groups', label: '3P Events', page: '3p-events' }
+    ]},
+    { id: 'g-other', icon: 'lightbulb', title: 'Other Projects', items: [
+        { id: 'l-21', icon: 'handshake', label: 'Mentoring Guide', url: 'https://onedrive.cloud.microsoft/:p:/a@l77xg24h/S/cQqoD0HIdw8fSohLs5nTfj-OEgUCzV6gis-Dh25_mALZ0OshuQ' }
+    ]},
+    { id: 'g-corp', icon: 'business', title: 'Corp Useful', items: [
+        { id: 'l-22', icon: 'badge', label: 'In Office Profile', url: 'https://msit.powerbi.com/groups/me/reports/63620602-8a32-417d-bc33-65dc73e93db4' },
+        { id: 'l-23', icon: 'auto_stories', label: 'Glossary', url: 'https://microsoft.sharepoint.com/SitePages/Glossary.aspx' },
+        { id: 'l-24', icon: 'redeem', label: 'Free Things!', url: 'https://microsoft-my.sharepoint.com/personal/dacoulte_microsoft_com/_layouts/15/Doc.aspx?sourcedoc=%7b3df2290f-997a-4622-abb0-f6aa5e4d86b0%7d' }
+    ]},
+    { id: 'g-personal', icon: 'person', title: 'Personal', items: [
+        { id: 'l-25', icon: 'checklist', label: 'Personal Tasks', page: 'personal-tasks' },
+        { id: 'l-26', icon: 'family_restroom', label: 'Family Events', page: 'family-events' },
+        { id: 'l-27', icon: 'account_balance_wallet', label: 'Finance Tracker', page: 'finance' },
+        { id: 'l-28', icon: 'calendar_month', label: 'Calendar', page: 'calendar' },
+        { id: 'l-29', icon: 'sports_esports', label: 'UW-TA', url: 'https://uw-ta.onrender.com/' },
+        { id: 'l-30', icon: 'auto_fix_high', label: 'Kronoscript', url: 'https://www.kronoscript.net' },
+        { id: 'l-31', icon: 'palette', label: 'Canvas', url: '#' },
+        { id: 'l-32', icon: 'link', label: 'Link Management', page: 'link-management' }
+    ]}
+];
+
 // ===== Task Categories & Colors =====
 const TASK_CATEGORIES = [
     { value: 'Content', color: '#2e7d32', bg: '#e8f5e9' },
@@ -335,7 +389,9 @@ let personalTasks = loadData(STORAGE_KEYS.personalTasks, DEFAULT_PERSONAL_TASKS)
 let archivedPersonalTasks = loadData(STORAGE_KEYS.archivedPersonalTasks, []);
 let familyEvents = loadData(STORAGE_KEYS.familyEvents, DEFAULT_FAMILY_EVENTS);
 let financeRecords = loadData(STORAGE_KEYS.financeRecords, []);
+let sidebarLinks = loadData(STORAGE_KEYS.sidebarLinks, DEFAULT_SIDEBAR_LINKS);
 let currentSort = { table: null, column: null, dir: 'asc' };
+let showHiddenTasks = localStorage.getItem('pa_show_hidden_tasks') === '1';
 
 // ===== Page Navigation =====
 function showPage(pageId) {
@@ -351,6 +407,7 @@ function showPage(pageId) {
         if (pageId === 'family-events') renderFamilyEvents();
         if (pageId === 'finance') renderFinance();
         if (pageId === 'calendar') renderCalendar();
+        if (pageId === 'link-management') renderLinkManagement();
         if (pageId === 'welcome') updateStats();
     }
 }
@@ -404,20 +461,28 @@ function buildVendorSelect(selected, idx) {
 function renderTasks() {
     const tbody = document.getElementById('tasks-body');
     tbody.innerHTML = '';
-    // Sort tasks by urgency (1 on top, then 2, 3, 4)
-    const sorted = tasks.map((t, i) => ({...t, _idx: i})).sort((a, b) => {
-        const ua = parseInt(a.urgency || '4');
-        const ub = parseInt(b.urgency || '4');
-        return ua - ub;
-    });
+    const toggleBtn = document.getElementById('tasks-show-hidden-btn');
+    if (toggleBtn) {
+        toggleBtn.textContent = showHiddenTasks ? 'Hide hidden' : 'Show hidden';
+        toggleBtn.style.background = showHiddenTasks ? '#fff3cd' : '';
+    }
+    const sorted = tasks.map((t, i) => ({...t, _idx: i}))
+        .filter(t => showHiddenTasks || !t.hidden)
+        .sort((a, b) => {
+            const ua = parseInt(a.urgency || '4');
+            const ub = parseInt(b.urgency || '4');
+            return ua - ub;
+        });
     sorted.forEach((task) => {
         const idx = task._idx;
         const cat = getCategoryInfo(task.category);
         const alert = getDateAlert(task.date);
         const tr = document.createElement('tr');
         tr.style.background = task.category ? cat.bg : '';
+        if (task.hidden) tr.style.opacity = '0.45';
         tr.innerHTML = `
             <td class="col-check"><input type="checkbox" class="task-checkbox" onchange="completeTask(${idx})" title="Mark complete"></td>
+            <td class="col-check"><input type="checkbox" ${task.hidden ? 'checked' : ''} onchange="toggleTaskHidden(${idx})" title="Hide row"></td>
             <td>${buildUrgencySelect(task.urgency || '4', idx)}</td>
             <td>${buildCategorySelect(task.category || 'Other', idx)}</td>
             <td><input type="text" value="${esc(task.name)}" placeholder="Task name..." onchange="updateTask(${idx},'name',this.value)"></td>
@@ -432,6 +497,18 @@ function renderTasks() {
     });
     updateStats();
     renderArchivedToggle();
+}
+
+function toggleTaskHidden(idx) {
+    tasks[idx].hidden = !tasks[idx].hidden;
+    saveData(STORAGE_KEYS.tasks, tasks);
+    renderTasks();
+}
+
+function toggleShowHiddenTasks() {
+    showHiddenTasks = !showHiddenTasks;
+    localStorage.setItem('pa_show_hidden_tasks', showHiddenTasks ? '1' : '0');
+    renderTasks();
 }
 
 function completeTask(idx) {
@@ -1192,7 +1269,7 @@ function financeDonutChart(title, data, palette) {
     const total = entries.reduce((s, [, v]) => s + v, 0);
     const r = 52, c = 2 * Math.PI * r;
     let offset = 0;
-    const segs = entries.map(([k, v], i) => {
+    const segs = entries.map(([, v], i) => {
         const frac = v / total;
         const dash = frac * c;
         const el = `<circle cx="70" cy="70" r="${r}" fill="none" stroke="${palette[i % palette.length]}" stroke-width="20" stroke-dasharray="${dash} ${c - dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 70 70)"/>`;
@@ -1217,6 +1294,108 @@ function financeMonthChart(title, byMonth) {
     }).join('');
     const legend = `<div style="display:flex;gap:14px;font-size:11px;margin-top:4px"><span><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:2px"></span> Debit</span><span><span style="display:inline-block;width:10px;height:10px;background:#27ae60;border-radius:2px"></span> Credit</span></div>`;
     return financeCard(title, `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}">${bars}</svg>${legend}`);
+}
+
+// ===== Sidebar (data-driven) =====
+function renderSidebar() {
+    const aside = document.querySelector('aside.sidebar');
+    if (!aside) return;
+    const html = ['<h2 class="sidebar-title">Quick Links</h2>'];
+    sidebarLinks.forEach((group, gi) => {
+        const openCls = gi === 0 ? 'open' : '';
+        const collapsedCls = gi === 0 ? '' : 'collapsed';
+        const items = group.items.map(it => {
+            const href = it.page ? '#' : (it.url || '#');
+            const click = it.page ? `onclick="showPage('${it.page}'); return false;"` : '';
+            const target = it.page ? '' : 'target="_blank"';
+            return `<a href="${esc(href)}" ${target} ${click} class="sidebar-link"><span class="material-icons-outlined">${esc(it.icon || 'link')}</span> ${esc(it.label)}</a>`;
+        }).join('');
+        html.push(`<div class="link-group"><div class="link-group-header ${collapsedCls}" onclick="toggleGroup(this)"><span class="material-icons-outlined">${esc(group.icon || 'folder')}</span> ${esc(group.title)}<span class="material-icons-outlined chevron">expand_more</span></div><div class="link-group-body ${openCls}">${items}</div></div>`);
+    });
+    aside.innerHTML = html.join('');
+}
+
+// ===== Link Management =====
+function renderLinkManagement() {
+    const host = document.getElementById('link-management-content');
+    if (!host) return;
+    const cards = sidebarLinks.map(group => {
+        const rows = group.items.map(item => `
+            <div style="display:flex;gap:8px;align-items:center;padding:8px;border-bottom:1px solid #f1f3f4">
+                <span class="material-icons-outlined" style="color:#888;font-size:18px">${esc(item.icon || 'link')}</span>
+                <input type="text" value="${esc(item.label)}" placeholder="Label" onchange="linkUpdate('${group.id}','${item.id}','label',this.value)" style="flex:1;min-width:120px;padding:5px 8px;border:1px solid #dadce0;border-radius:4px;font-size:12px">
+                <input type="text" value="${esc(item.url || '')}" placeholder="${item.page ? 'internal page: ' + item.page : 'https://...'}" ${item.page ? 'disabled' : ''} onchange="linkUpdate('${group.id}','${item.id}','url',this.value)" style="flex:2;min-width:180px;padding:5px 8px;border:1px solid #dadce0;border-radius:4px;font-size:12px;${item.page ? 'background:#f5f5f5;color:#999' : ''}">
+                <select onchange="linkMove('${group.id}','${item.id}',this.value)" style="padding:5px 8px;border:1px solid #dadce0;border-radius:4px;font-size:12px">
+                    ${sidebarLinks.map(g => `<option value="${g.id}" ${g.id === group.id ? 'selected' : ''}>${esc(g.title)}</option>`).join('')}
+                </select>
+                <button class="btn-delete" onclick="linkDelete('${group.id}','${item.id}')" title="Delete link"><span class="material-icons-outlined">delete</span></button>
+            </div>
+        `).join('');
+        return `
+            <div style="background:#fff;border:1px solid #e8eaed;border-radius:8px;margin-bottom:16px">
+                <div style="padding:12px 14px;background:#f8f9fa;border-bottom:1px solid #e8eaed;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:8px">
+                    <span class="material-icons-outlined">${esc(group.icon || 'folder')}</span>
+                    <strong style="flex:1">${esc(group.title)}</strong>
+                    <span style="color:#888;font-size:12px">${group.items.length} link${group.items.length === 1 ? '' : 's'}</span>
+                </div>
+                ${rows || '<div style="padding:12px;color:#999;font-size:13px">No links</div>'}
+                <div style="padding:10px 12px;display:flex;gap:8px;align-items:center;background:#fafbfc;border-radius:0 0 8px 8px">
+                    <input type="text" placeholder="New label" id="new-label-${group.id}" style="flex:1;padding:6px 8px;border:1px solid #dadce0;border-radius:4px;font-size:12px">
+                    <input type="text" placeholder="https://..." id="new-url-${group.id}" style="flex:2;padding:6px 8px;border:1px solid #dadce0;border-radius:4px;font-size:12px">
+                    <input type="text" placeholder="icon (optional)" id="new-icon-${group.id}" value="link" style="width:100px;padding:6px 8px;border:1px solid #dadce0;border-radius:4px;font-size:12px">
+                    <button class="btn-primary" onclick="linkAdd('${group.id}')"><span class="material-icons-outlined">add</span> Add</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    host.innerHTML = cards;
+}
+
+function linkUpdate(groupId, itemId, field, value) {
+    const g = sidebarLinks.find(x => x.id === groupId);
+    if (!g) return;
+    const it = g.items.find(x => x.id === itemId);
+    if (!it) return;
+    it[field] = value;
+    saveData(STORAGE_KEYS.sidebarLinks, sidebarLinks);
+    renderSidebar();
+}
+
+function linkDelete(groupId, itemId) {
+    if (!confirm('Delete this link?')) return;
+    const g = sidebarLinks.find(x => x.id === groupId);
+    if (!g) return;
+    g.items = g.items.filter(x => x.id !== itemId);
+    saveData(STORAGE_KEYS.sidebarLinks, sidebarLinks);
+    renderSidebar();
+    renderLinkManagement();
+}
+
+function linkMove(fromGroupId, itemId, toGroupId) {
+    if (fromGroupId === toGroupId) return;
+    const from = sidebarLinks.find(x => x.id === fromGroupId);
+    const to = sidebarLinks.find(x => x.id === toGroupId);
+    if (!from || !to) return;
+    const idx = from.items.findIndex(x => x.id === itemId);
+    if (idx < 0) return;
+    const [item] = from.items.splice(idx, 1);
+    to.items.push(item);
+    saveData(STORAGE_KEYS.sidebarLinks, sidebarLinks);
+    renderSidebar();
+    renderLinkManagement();
+}
+
+function linkAdd(groupId) {
+    const label = (document.getElementById('new-label-' + groupId) || {}).value || '';
+    const url = (document.getElementById('new-url-' + groupId) || {}).value || '';
+    const icon = (document.getElementById('new-icon-' + groupId) || {}).value || 'link';
+    if (!label.trim() || !url.trim()) { alert('Label and URL are required.'); return; }
+    const g = sidebarLinks.find(x => x.id === groupId);
+    if (!g) return;
+    g.items.push({ id: 'l-' + Date.now(), icon: icon.trim(), label: label.trim(), url: url.trim() });
+    saveData(STORAGE_KEYS.sidebarLinks, sidebarLinks);
+    renderSidebar();
+    renderLinkManagement();
 }
 
 function updateFinanceAmount(idx, type, value) {
@@ -1634,9 +1813,7 @@ async function handleLogout() {
 
 // ===== Init =====
 async function initApp() {
-    document.querySelectorAll('.link-group-header').forEach((h, i) => {
-        if (i > 0) h.classList.add('collapsed');
-    });
+    renderSidebar();
 
     lastSyncTime = localStorage.getItem('pa_last_sync');
 

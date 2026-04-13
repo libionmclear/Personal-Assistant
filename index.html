@@ -333,13 +333,17 @@
                 <div class="page" id="page-tasks">
                     <div class="page-header">
                         <h1><span class="material-icons-outlined">task_alt</span> Tasks To Do</h1>
-                        <button class="btn-primary" onclick="addTask()"><span class="material-icons-outlined">add</span> Add Task</button>
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <button id="tasks-show-hidden-btn" class="btn-secondary" onclick="toggleShowHiddenTasks()" style="padding:7px 12px;border:1px solid #dadce0;border-radius:6px;background:#fff;cursor:pointer;font-size:13px">Show hidden</button>
+                            <button class="btn-primary" onclick="addTask()"><span class="material-icons-outlined">add</span> Add Task</button>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table id="tasks-table">
                             <thead>
                                 <tr>
-                                    <th class="col-check"></th>
+                                    <th class="col-check" title="Complete"></th>
+                                    <th class="col-check" title="Hide"><span class="material-icons-outlined" style="font-size:16px;vertical-align:middle">visibility_off</span></th>
                                     <th data-sort="urgency">Urgency <span class="sort-icon">↕</span></th>
                                     <th data-sort="category">Category <span class="sort-icon">↕</span></th>
                                     <th data-sort="name">Task Name <span class="sort-icon">↕</span></th>
@@ -545,6 +549,15 @@
                     </div>
                     <div id="calendar-container" data-month-offset="0"></div>
                 </div>
+
+                <!-- Link Management Page -->
+                <div class="page" id="page-link-management">
+                    <div class="page-header">
+                        <h1><span class="material-icons-outlined">link</span> Link Management</h1>
+                    </div>
+                    <p style="color:#555;font-size:13px;margin-bottom:16px">Edit, move, remove, or add quick links. Changes apply to the sidebar immediately.</p>
+                    <div id="link-management-content"></div>
+                </div>
             </main>
         </div>
     </div>
@@ -567,6 +580,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260412g"></script>
+    <script src="app.js?v=20260413a"></script>
 </body>
 </html>
