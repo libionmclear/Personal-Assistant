@@ -1190,8 +1190,9 @@ function getPmmList(pmmStr) {
 }
 
 function renderBubbles(names, prodIdx, field) {
+    const color = getProductColor(prodIdx);
     return names.map((name, i) =>
-        `<span class="bubble">${esc(name)}<button class="bubble-x" onclick="event.stopPropagation(); removePmm(${prodIdx},'${field}',${i})" title="Remove">&times;</button></span>`
+        `<span class="bubble" style="background:${color.mid};color:#1e1e2d">${esc(name)}<button class="bubble-x" onclick="event.stopPropagation(); removePmm(${prodIdx},'${field}',${i})" title="Remove">&times;</button></span>`
     ).join('');
 }
 
@@ -1230,16 +1231,16 @@ function addPmmFromDetail(idx) {
 }
 
 const PRODUCT_PALETTE = [
-    { bg: '#fde7e9', dark: '#c0392b' },
-    { bg: '#fdebd0', dark: '#b9770e' },
-    { bg: '#fef5d4', dark: '#9a7d0a' },
-    { bg: '#e8f8e8', dark: '#1e7e34' },
-    { bg: '#d4f1f4', dark: '#117a8b' },
-    { bg: '#dbeafe', dark: '#1d4ed8' },
-    { bg: '#e7e0fa', dark: '#5b21b6' },
-    { bg: '#f8d7da', dark: '#a71d2a' },
-    { bg: '#fce4ec', dark: '#ad1457' },
-    { bg: '#e0f2f1', dark: '#00695c' }
+    { bg: '#fde7e9', mid: '#f5c6cb', dark: '#c0392b' },
+    { bg: '#fdebd0', mid: '#f6d5a6', dark: '#b9770e' },
+    { bg: '#fef5d4', mid: '#f7e8a5', dark: '#9a7d0a' },
+    { bg: '#e8f8e8', mid: '#c8ecc8', dark: '#1e7e34' },
+    { bg: '#d4f1f4', mid: '#a8dfe6', dark: '#117a8b' },
+    { bg: '#dbeafe', mid: '#b4cff8', dark: '#1d4ed8' },
+    { bg: '#e7e0fa', mid: '#c9bdf0', dark: '#5b21b6' },
+    { bg: '#f8d7da', mid: '#efb0b6', dark: '#a71d2a' },
+    { bg: '#fce4ec', mid: '#f3bed1', dark: '#ad1457' },
+    { bg: '#e0f2f1', mid: '#b2dfdc', dark: '#00695c' }
 ];
 function getProductColor(idx) { return PRODUCT_PALETTE[idx % PRODUCT_PALETTE.length]; }
 
@@ -1261,7 +1262,7 @@ function renderProducts() {
         card.style.borderColor = color.dark + '33';
         card.onclick = () => showProductDetail(idx);
         const managerBubble = managerName
-            ? `<span class="bubble" style="background:${color.dark};color:#fff;font-weight:600">${esc(firstName(managerName))}</span>`
+            ? `<span class="bubble" style="background:${color.dark};color:#fff;font-weight:600">${esc(firstName(managerName))}<button class="bubble-x" onclick="event.stopPropagation(); removeManager(${idx})" title="Remove manager">&times;</button></span>`
             : '';
         card.innerHTML = `
             <h3>${esc(prod.name)}</h3>
@@ -1286,6 +1287,30 @@ function addManagerToProduct() {
     products[idx].pmmManager = name;
     saveData(STORAGE_KEYS.products, products);
     input.value = '';
+    renderProducts();
+}
+
+function removeManager(idx) {
+    products[idx].pmmManager = '';
+    saveData(STORAGE_KEYS.products, products);
+    renderProducts();
+}
+
+function addNewProductCard() {
+    const title = (document.getElementById('new-card-title') || {}).value || '';
+    const manager = (document.getElementById('new-card-manager') || {}).value || '';
+    const pmms = (document.getElementById('new-card-pmms') || {}).value || '';
+    if (!title.trim()) { alert('New Title is required.'); return; }
+    products.push({
+        name: title.trim(),
+        pmm: pmms.split(',').map(s => s.trim()).filter(Boolean).join(', '),
+        pmmManager: manager.trim(),
+        sme: '', globalSkilling: '', updates: [], events: []
+    });
+    saveData(STORAGE_KEYS.products, products);
+    document.getElementById('new-card-title').value = '';
+    document.getElementById('new-card-manager').value = '';
+    document.getElementById('new-card-pmms').value = '';
     renderProducts();
 }
 
