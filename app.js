@@ -1242,7 +1242,44 @@ const PRODUCT_PALETTE = [
     { bg: '#fce4ec', mid: '#f3bed1', dark: '#ad1457' },
     { bg: '#e0f2f1', mid: '#b2dfdc', dark: '#00695c' }
 ];
-function getProductColor(idx) { return PRODUCT_PALETTE[idx % PRODUCT_PALETTE.length]; }
+function getProductColor(idx) {
+    const prod = products[idx];
+    if (prod && typeof prod._paletteIdx === 'number') return PRODUCT_PALETTE[prod._paletteIdx % PRODUCT_PALETTE.length];
+    return PRODUCT_PALETTE[idx % PRODUCT_PALETTE.length];
+}
+
+function getProductCategory(prod) { return prod.category || 'PMM'; }
+
+function assignCardPaletteIdx(category) {
+    const used = new Set(
+        products.filter(p => getProductCategory(p) === category && typeof p._paletteIdx === 'number').map(p => p._paletteIdx)
+    );
+    for (let i = 0; i < PRODUCT_PALETTE.length; i++) if (!used.has(i)) return i;
+    // all used — pick the least-used
+    const counts = new Array(PRODUCT_PALETTE.length).fill(0);
+    products.filter(p => getProductCategory(p) === category).forEach(p => {
+        if (typeof p._paletteIdx === 'number') counts[p._paletteIdx]++;
+    });
+    let best = 0;
+    for (let i = 1; i < counts.length; i++) if (counts[i] < counts[best]) best = i;
+    return best;
+}
+
+function migrateProductsCategoryAndPalette() {
+    let changed = false;
+    const byCat = {};
+    products.forEach((p) => {
+        if (!p.category) { p.category = 'PMM'; changed = true; }
+        if (typeof p._paletteIdx !== 'number') {
+            const cat = getProductCategory(p);
+            byCat[cat] = (byCat[cat] || 0);
+            p._paletteIdx = byCat[cat] % PRODUCT_PALETTE.length;
+            byCat[cat]++;
+            changed = true;
+        }
+    });
+    if (changed) saveData(STORAGE_KEYS.products, products);
+}
 
 function firstName(full) {
     if (!full) return '';
@@ -1250,32 +1287,56 @@ function firstName(full) {
 }
 
 function renderProducts() {
+    migrateProductsCategoryAndPalette();
     const grid = document.getElementById('products-grid');
     grid.innerHTML = '';
-    products.forEach((prod, idx) => {
-        const pmmNames = getPmmList(prod.pmm);
-        const managerName = prod.pmmManager || '';
-        const color = getProductColor(idx);
-        const card = document.createElement('div');
-        card.className = 'product-card';
-        card.style.background = color.bg;
-        card.style.borderColor = color.dark + '33';
-        card.onclick = () => showProductDetail(idx);
-        const managerBubble = managerName
-            ? `<span class="bubble" style="background:${color.dark};color:#fff;font-weight:600">${esc(firstName(managerName))}<button class="bubble-x" onclick="event.stopPropagation(); removeManager(${idx})" title="Remove manager">&times;</button></span>`
-            : '';
-        card.innerHTML = `
-            <h3>${esc(prod.name)}</h3>
-            ${managerBubble ? `<div class="card-label">Manager</div><div class="bubble-wrap" style="margin-bottom:10px">${managerBubble}</div>` : ''}
-            <div class="card-label">PMM</div>
-            <div class="bubble-wrap">${renderBubbles(pmmNames, idx, 'pmm')}</div>
-        `;
-        grid.appendChild(card);
+    const categories = ['PMM', 'Other'];
+    categories.forEach(cat => {
+        const catProducts = products.map((p, i) => ({ p, i })).filter(({ p }) => getProductCategory(p) === cat);
+        if (!catProducts.length && cat === 'Other') return;
+        const section = document.createElement('div');
+        section.className = 'product-category-section';
+        section.style.cssText = 'grid-column:1/-1;margin-top:8px';
+        section.innerHTML = `<h2 style="font-size:16px;font-weight:600;color:#555;margin:18px 0 10px 2px;text-transform:uppercase;letter-spacing:.5px">${esc(cat)}</h2>`;
+        grid.appendChild(section);
+        const inner = document.createElement('div');
+        inner.className = 'products-grid-inner';
+        inner.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;grid-column:1/-1';
+        section.appendChild(inner);
+        catProducts.forEach(({ p: prod, i: idx }) => {
+            const pmmNames = getPmmList(prod.pmm);
+            const managerName = prod.pmmManager || '';
+            const color = getProductColor(idx);
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.style.background = color.bg;
+            card.style.borderColor = color.dark + '33';
+            card.onclick = () => showProductDetail(idx);
+            const managerBubble = managerName
+                ? `<span class="bubble" style="background:${color.dark};color:#fff;font-weight:600">${esc(managerName)}<button class="bubble-x" onclick="event.stopPropagation(); removeManager(${idx})" title="Remove manager">&times;</button></span>`
+                : '';
+            card.innerHTML = `
+                <h3>${esc(prod.name)}</h3>
+                ${managerBubble ? `<div class="card-label">Manager</div><div class="bubble-wrap" style="margin-bottom:10px">${managerBubble}</div>` : ''}
+                <div class="card-label">Who</div>
+                <div class="bubble-wrap">${renderBubbles(pmmNames, idx, 'pmm')}</div>
+            `;
+            inner.appendChild(card);
+        });
     });
-    const sel = document.getElementById('pmm-product-select');
-    if (sel) sel.innerHTML = products.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
-    const mgrSel = document.getElementById('mgr-product-select');
-    if (mgrSel) mgrSel.innerHTML = products.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
+    refreshProductSelects();
+}
+
+function refreshProductSelects() {
+    const fill = (selId, catFilterId) => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        const cat = (document.getElementById(catFilterId) || {}).value || 'PMM';
+        const filtered = products.map((p, i) => ({ p, i })).filter(({ p }) => getProductCategory(p) === cat);
+        sel.innerHTML = filtered.map(({ p, i }) => `<option value="${i}">${esc(p.name)}</option>`).join('') || '<option value="">(no cards in this category)</option>';
+    };
+    fill('pmm-product-select', 'pmm-category-filter');
+    fill('mgr-product-select', 'mgr-category-filter');
 }
 
 function addManagerToProduct() {
@@ -1300,9 +1361,13 @@ function addNewProductCard() {
     const title = (document.getElementById('new-card-title') || {}).value || '';
     const manager = (document.getElementById('new-card-manager') || {}).value || '';
     const pmms = (document.getElementById('new-card-pmms') || {}).value || '';
+    const category = (document.getElementById('new-card-category') || {}).value || 'PMM';
     if (!title.trim()) { alert('New Title is required.'); return; }
+    const paletteIdx = assignCardPaletteIdx(category);
     products.push({
         name: title.trim(),
+        category,
+        _paletteIdx: paletteIdx,
         pmm: pmms.split(',').map(s => s.trim()).filter(Boolean).join(', '),
         pmmManager: manager.trim(),
         sme: '', globalSkilling: '', updates: [], events: []

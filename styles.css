@@ -953,7 +953,7 @@ tbody td textarea:focus {
     border-radius: 50px;
     font-size: 12px;
     font-weight: 500;
-    white-space: nowrap;
+    white-space: normal;
     transition: background 0.15s;
 }
 .bubble:hover { background: #dce2ec; }

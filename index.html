@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marco's Personal Assistant</title>
-    <link rel="stylesheet" href="styles.css?v=20260413e">
+    <link rel="stylesheet" href="styles.css?v=20260413g">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 </head>
@@ -52,7 +52,7 @@
                     <span class="material-icons-outlined">family_restroom</span> Personal Events
                 </a>
                 <a href="#" class="neon-btn neon-green" onclick="showPage('hero-products'); return false;">
-                    <span class="material-icons-outlined">groups</span> PMMs
+                    <span class="material-icons-outlined">groups</span> Who
                 </a>
             </div>
             <div class="top-bar-right">
@@ -360,7 +360,7 @@
                 <!-- Hero Products Page -->
                 <div class="page" id="page-hero-products">
                     <div class="page-header">
-                        <h1><span class="material-icons-outlined">groups</span> PMMs</h1>
+                        <h1><span class="material-icons-outlined">groups</span> Who</h1>
                     </div>
                     <div class="products-grid" id="products-grid"></div>
 
@@ -369,14 +369,21 @@
                         <h3><span class="material-icons-outlined">person_add</span> Add PMMs</h3>
                         <div class="pmm-panel-row">
                             <div class="pmm-panel-field">
-                                <label>Product</label>
+                                <label>Category</label>
+                                <select id="pmm-category-filter" onchange="refreshProductSelects()">
+                                    <option value="PMM">PMM</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="pmm-panel-field">
+                                <label>Card</label>
                                 <select id="pmm-product-select"></select>
                             </div>
                             <div class="pmm-panel-field">
-                                <label>PMM Name</label>
-                                <input type="text" id="pmm-name-input" placeholder="Enter PMM name...">
+                                <label>Name</label>
+                                <input type="text" id="pmm-name-input" placeholder="Enter full name...">
                             </div>
-                            <button class="btn-primary" onclick="addPmmToProduct()"><span class="material-icons-outlined">add</span> Add PMM</button>
+                            <button class="btn-primary" onclick="addPmmToProduct()"><span class="material-icons-outlined">add</span> Add</button>
                         </div>
                     </div>
 
@@ -385,7 +392,14 @@
                         <h3><span class="material-icons-outlined">manage_accounts</span> Add Managers</h3>
                         <div class="pmm-panel-row">
                             <div class="pmm-panel-field">
-                                <label>Product</label>
+                                <label>Category</label>
+                                <select id="mgr-category-filter" onchange="refreshProductSelects()">
+                                    <option value="PMM">PMM</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="pmm-panel-field">
+                                <label>Card</label>
                                 <select id="mgr-product-select"></select>
                             </div>
                             <div class="pmm-panel-field">
@@ -401,6 +415,13 @@
                         <h3><span class="material-icons-outlined">add_box</span> Add New Card</h3>
                         <div class="pmm-panel-row">
                             <div class="pmm-panel-field">
+                                <label>Category</label>
+                                <select id="new-card-category">
+                                    <option value="PMM">PMM</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="pmm-panel-field">
                                 <label>New Title</label>
                                 <input type="text" id="new-card-title" placeholder="e.g. Azure OpenAI">
                             </div>
@@ -409,7 +430,7 @@
                                 <input type="text" id="new-card-manager" placeholder="Manager name...">
                             </div>
                             <div class="pmm-panel-field">
-                                <label>Initial PMMs (optional, comma-separated)</label>
+                                <label>Initial Names (optional, comma-separated)</label>
                                 <input type="text" id="new-card-pmms" placeholder="Jane Doe, John Smith">
                             </div>
                             <button class="btn-primary" onclick="addNewProductCard()"><span class="material-icons-outlined">add</span> Add Card</button>
@@ -662,6 +683,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260413f"></script>
+    <script src="app.js?v=20260413g"></script>
 </body>
 </html>
