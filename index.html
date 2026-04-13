@@ -485,20 +485,22 @@
                             <button class="btn-primary" onclick="addWorkEvent()"><span class="material-icons-outlined">add</span> Add Event</button>
                         </div>
                     </div>
+                    <div id="work-events-calendar" style="margin-bottom:16px"></div>
                     <div class="table-container">
                         <table id="work-events-table">
                             <thead>
                                 <tr>
-                                    <th>Type</th>
-                                    <th>Priority</th>
-                                    <th>Date</th>
-                                    <th>Event Name</th>
-                                    <th>Hero Product</th>
-                                    <th>PMM</th>
-                                    <th>Marketing Contact</th>
-                                    <th>Plan of Record</th>
-                                    <th>Marketing Activity</th>
-                                    <th>Notes</th>
+                                    <th data-sort="_type">Type <span class="sort-icon">↕</span></th>
+                                    <th data-sort="priority">Priority <span class="sort-icon">↕</span></th>
+                                    <th data-sort="dateFrom">Date From <span class="sort-icon">↕</span></th>
+                                    <th data-sort="dateTo">Date To <span class="sort-icon">↕</span></th>
+                                    <th data-sort="name">Event Name <span class="sort-icon">↕</span></th>
+                                    <th data-sort="hero">Hero Product <span class="sort-icon">↕</span></th>
+                                    <th data-sort="pmm">PMM <span class="sort-icon">↕</span></th>
+                                    <th data-sort="contact">Marketing Contact <span class="sort-icon">↕</span></th>
+                                    <th data-sort="plan">Plan of Record <span class="sort-icon">↕</span></th>
+                                    <th data-sort="activity">Marketing Activity <span class="sort-icon">↕</span></th>
+                                    <th data-sort="notes">Notes <span class="sort-icon">↕</span></th>
                                     <th class="col-actions"></th>
                                 </tr>
                             </thead>
@@ -518,13 +520,13 @@
                             <thead>
                                 <tr>
                                     <th class="col-check"></th>
-                                    <th>Urgency</th>
-                                    <th>Category</th>
-                                    <th>Task Name</th>
-                                    <th>Date Due</th>
-                                    <th>Useful Link</th>
-                                    <th>Who</th>
-                                    <th>Notes</th>
+                                    <th data-sort="urgency">Urgency <span class="sort-icon">↕</span></th>
+                                    <th data-sort="category">Category <span class="sort-icon">↕</span></th>
+                                    <th data-sort="name">Task Name <span class="sort-icon">↕</span></th>
+                                    <th data-sort="date">Date Due <span class="sort-icon">↕</span></th>
+                                    <th data-sort="link">Useful Link <span class="sort-icon">↕</span></th>
+                                    <th data-sort="who">Who <span class="sort-icon">↕</span></th>
+                                    <th data-sort="notes">Notes <span class="sort-icon">↕</span></th>
                                     <th class="col-actions"></th>
                                 </tr>
                             </thead>
@@ -545,15 +547,15 @@
                             <thead>
                                 <tr>
                                     <th style="width:4px;padding:0"></th>
-                                    <th>Date From</th>
-                                    <th>Date To</th>
-                                    <th>Event Name</th>
-                                    <th>Where</th>
-                                    <th>Hotel</th>
-                                    <th>Car</th>
-                                    <th>Transportation</th>
-                                    <th>Who</th>
-                                    <th>Notes</th>
+                                    <th data-sort="dateFrom">Date From <span class="sort-icon">↕</span></th>
+                                    <th data-sort="dateTo">Date To <span class="sort-icon">↕</span></th>
+                                    <th data-sort="name">Event Name <span class="sort-icon">↕</span></th>
+                                    <th data-sort="where">Where <span class="sort-icon">↕</span></th>
+                                    <th data-sort="hotel">Hotel <span class="sort-icon">↕</span></th>
+                                    <th data-sort="car">Car <span class="sort-icon">↕</span></th>
+                                    <th data-sort="transportation">Transportation <span class="sort-icon">↕</span></th>
+                                    <th data-sort="who">Who <span class="sort-icon">↕</span></th>
+                                    <th data-sort="notes">Notes <span class="sort-icon">↕</span></th>
                                     <th class="col-actions"></th>
                                 </tr>
                             </thead>
@@ -588,12 +590,12 @@
                         <table id="finance-table">
                             <thead>
                                 <tr>
-                                    <th>Who</th>
-                                    <th>Method</th>
-                                    <th style="text-align:right">Debit</th>
-                                    <th style="text-align:right">Credit</th>
-                                    <th>Date</th>
-                                    <th>Notes</th>
+                                    <th data-sort="who">Who <span class="sort-icon">↕</span></th>
+                                    <th data-sort="method">Method <span class="sort-icon">↕</span></th>
+                                    <th data-sort="amount" style="text-align:right">Debit <span class="sort-icon">↕</span></th>
+                                    <th data-sort="amount" style="text-align:right">Credit <span class="sort-icon">↕</span></th>
+                                    <th data-sort="date">Date <span class="sort-icon">↕</span></th>
+                                    <th data-sort="notes">Notes <span class="sort-icon">↕</span></th>
                                     <th class="col-actions"></th>
                                 </tr>
                             </thead>
@@ -640,6 +642,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260413c"></script>
+    <script src="app.js?v=20260413d"></script>
 </body>
 </html>

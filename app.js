@@ -218,6 +218,7 @@ function reloadAllState() {
     financeRecords = loadData(STORAGE_KEYS.financeRecords, []);
     sidebarLinks = loadData(STORAGE_KEYS.sidebarLinks, DEFAULT_SIDEBAR_LINKS);
     migrateSidebarLinks();
+    migrateWorkEventDates();
     renderSidebar();
     showPage('welcome');
 }
@@ -868,7 +869,7 @@ function renderFamilyCalendar() {
     const eventColors = getFamilyEventColors();
 
     let html = '<div class="fam-cal-strip">';
-    for (let m = 0; m < 10; m++) {
+    for (let m = 0; m < 12; m++) {
         const viewDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
         const year = viewDate.getFullYear();
         const month = viewDate.getMonth();
@@ -1034,10 +1035,34 @@ function deleteEvent(type, idx) {
 let workEventsFilter = { type: 'all', range: '3m', search: '' };
 
 function getAllWorkEvents() {
+    const hydrate = (e, i, t) => ({
+        ...e,
+        dateFrom: e.dateFrom || e.date || '',
+        dateTo: e.dateTo || e.date || '',
+        _type: t, _idx: i
+    });
     return [
-        ...events1p.map((e, i) => ({ ...e, _type: '1p', _idx: i })),
-        ...events3p.map((e, i) => ({ ...e, _type: '3p', _idx: i }))
+        ...events1p.map((e, i) => hydrate(e, i, '1p')),
+        ...events3p.map((e, i) => hydrate(e, i, '3p'))
     ];
+}
+
+function migrateWorkEventDates() {
+    let changed1p = false, changed3p = false;
+    events1p.forEach(e => { if (!e.dateFrom && e.date) { e.dateFrom = e.date; e.dateTo = e.dateTo || e.date; changed1p = true; } });
+    events3p.forEach(e => { if (!e.dateFrom && e.date) { e.dateFrom = e.date; e.dateTo = e.dateTo || e.date; changed3p = true; } });
+    if (changed1p) saveData(STORAGE_KEYS.events1p, events1p);
+    if (changed3p) saveData(STORAGE_KEYS.events3p, events3p);
+}
+
+const WORK_EVENT_PALETTE = ['#e74c3c', '#3498db', '#27ae60', '#9b59b6', '#e67e22', '#16a085', '#c2185b', '#2980b9', '#d35400', '#7f8c8d', '#8e44ad', '#00acc1'];
+function getWorkEventColors() {
+    const map = {};
+    let i = 0;
+    getAllWorkEvents().forEach(ev => {
+        if (ev.name && !map[ev.name]) { map[ev.name] = WORK_EVENT_PALETTE[i % WORK_EVENT_PALETTE.length]; i++; }
+    });
+    return map;
 }
 
 function renderWorkEvents() {
@@ -1059,8 +1084,9 @@ function renderWorkEvents() {
     let list = getAllWorkEvents();
     if (workEventsFilter.type !== 'all') list = list.filter(e => e._type === workEventsFilter.type);
     list = list.filter(e => {
-        if (e.date) {
-            const d = new Date(e.date + 'T00:00:00');
+        const anchor = e.dateFrom || e.date;
+        if (anchor) {
+            const d = new Date(anchor + 'T00:00:00');
             if (cutoffStart && d < cutoffStart) return false;
             if (cutoffEnd && d > cutoffEnd) return false;
         }
@@ -1070,7 +1096,13 @@ function renderWorkEvents() {
         }
         return true;
     });
-    list.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+    const sortCol = currentSort.table === 'work-events-table' ? currentSort.column : 'dateFrom';
+    const sortDir = currentSort.table === 'work-events-table' ? currentSort.dir : 'asc';
+    list.sort((a, b) => {
+        const va = (a[sortCol] || '').toString().toLowerCase();
+        const vb = (b[sortCol] || '').toString().toLowerCase();
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
     tbody.innerHTML = '';
     list.forEach(ev => {
         const t = ev._type, idx = ev._idx;
@@ -1081,8 +1113,9 @@ function renderWorkEvents() {
         tr.innerHTML = `
             <td>${typeBubble}</td>
             <td>${buildEventPrioritySelect(t, idx, ev.priority || 'P3')}</td>
-            <td><input type="date" value="${esc(ev.date)}" onchange="updateEvent('${t}',${idx},'date',this.value); renderWorkEvents()"></td>
-            <td><input type="text" value="${esc(ev.name)}" placeholder="Event name..." onchange="updateEvent('${t}',${idx},'name',this.value)"></td>
+            <td><input type="date" value="${esc(ev.dateFrom)}" onchange="updateEvent('${t}',${idx},'dateFrom',this.value); renderWorkEvents()"></td>
+            <td><input type="date" value="${esc(ev.dateTo)}" onchange="updateEvent('${t}',${idx},'dateTo',this.value); renderWorkEvents()"></td>
+            <td><input type="text" value="${esc(ev.name)}" placeholder="Event name..." onchange="updateEvent('${t}',${idx},'name',this.value); renderWorkEvents()"></td>
             <td><input type="text" value="${esc(ev.hero)}" placeholder="Product..." onchange="updateEvent('${t}',${idx},'hero',this.value)"></td>
             <td><input type="text" value="${esc(ev.pmm)}" placeholder="PMM..." onchange="updateEvent('${t}',${idx},'pmm',this.value)"></td>
             <td><input type="text" value="${esc(ev.contact)}" placeholder="Contact..." onchange="updateEvent('${t}',${idx},'contact',this.value)"></td>
@@ -1095,7 +1128,52 @@ function renderWorkEvents() {
     });
     const countEl = document.getElementById('we-count');
     if (countEl) countEl.textContent = `${list.length} event${list.length === 1 ? '' : 's'}`;
+    renderWorkEventsCalendar();
     updateStats();
+}
+
+function renderWorkEventsCalendar() {
+    const container = document.getElementById('work-events-calendar');
+    if (!container) return;
+    const now = new Date();
+    const colors = getWorkEventColors();
+    const all = getAllWorkEvents();
+    let html = '<div class="fam-cal-strip">';
+    for (let m = 0; m < 12; m++) {
+        const viewDate = new Date(now.getFullYear(), now.getMonth() + m, 1);
+        const year = viewDate.getFullYear();
+        const month = viewDate.getMonth();
+        const monthName = viewDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay();
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const dayEvents = {};
+        all.forEach(ev => {
+            if (!ev.name || !ev.dateFrom) return;
+            const from = new Date(ev.dateFrom + 'T00:00:00');
+            const to = ev.dateTo ? new Date(ev.dateTo + 'T00:00:00') : from;
+            for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+                if (d.getFullYear() === year && d.getMonth() === month) {
+                    if (!dayEvents[d.getDate()]) dayEvents[d.getDate()] = [];
+                    dayEvents[d.getDate()].push(ev);
+                }
+            }
+        });
+        html += `<div class="fam-cal-month"><div class="fam-cal-month-title">${monthName}</div><div class="fam-cal-grid"><div class="fam-cal-dh">S</div><div class="fam-cal-dh">M</div><div class="fam-cal-dh">T</div><div class="fam-cal-dh">W</div><div class="fam-cal-dh">T</div><div class="fam-cal-dh">F</div><div class="fam-cal-dh">S</div>`;
+        for (let i = 0; i < firstDay; i++) html += '<div class="fam-cal-day fam-cal-empty"></div>';
+        for (let day = 1; day <= daysInMonth; day++) {
+            const isToday = year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+            const evts = dayEvents[day] || [];
+            const bgColor = evts.length ? colors[evts[0].name] : '';
+            const style = bgColor ? `background:${bgColor};color:#fff` : '';
+            html += `<div class="fam-cal-day${isToday ? ' fam-cal-today' : ''}${evts.length ? ' fam-cal-has-event' : ''}" ${style ? `style="${style}"` : ''}>${day}${evts.length ? `<div class="fam-cal-tip">${evts.map(e => `<div><strong>${esc(e.name)}</strong> <span style="opacity:.8">[${e._type.toUpperCase()}]</span>${e.hero ? '<br>' + esc(e.hero) : ''}${e.pmm ? '<br><em>' + esc(e.pmm) + '</em>' : ''}</div>`).join('')}</div>` : ''}</div>`;
+        }
+        html += '</div></div>';
+    }
+    html += '<div class="fam-cal-legend">';
+    for (const [name, color] of Object.entries(colors)) html += `<span class="fam-cal-legend-item"><span class="fam-cal-legend-dot" style="background:${color}"></span>${esc(name)}</span>`;
+    html += '</div></div>';
+    container.innerHTML = html;
 }
 
 function addWorkEvent() {
@@ -1705,10 +1783,14 @@ document.addEventListener('click', function(e) {
         currentSort = { table: tableId, column: col, dir: 'asc' };
     }
 
-    let dataArr, key;
-    if (tableId === 'tasks-table') { dataArr = tasks; key = STORAGE_KEYS.tasks; }
-    else if (tableId === 'events-1p-table') { dataArr = events1p; key = STORAGE_KEYS.events1p; }
-    else if (tableId === 'events-3p-table') { dataArr = events3p; key = STORAGE_KEYS.events3p; }
+    let dataArr, key, rerender;
+    if (tableId === 'tasks-table') { dataArr = tasks; key = STORAGE_KEYS.tasks; rerender = renderTasks; }
+    else if (tableId === 'events-1p-table') { dataArr = events1p; key = STORAGE_KEYS.events1p; rerender = () => renderEvents('1p'); }
+    else if (tableId === 'events-3p-table') { dataArr = events3p; key = STORAGE_KEYS.events3p; rerender = () => renderEvents('3p'); }
+    else if (tableId === 'personal-tasks-table') { dataArr = personalTasks; key = STORAGE_KEYS.personalTasks; rerender = renderPersonalTasks; }
+    else if (tableId === 'family-events-table') { dataArr = familyEvents; key = STORAGE_KEYS.familyEvents; rerender = renderFamilyEvents; }
+    else if (tableId === 'finance-table') { dataArr = financeRecords; key = STORAGE_KEYS.financeRecords; rerender = renderFinance; }
+    else if (tableId === 'work-events-table') { renderWorkEvents(); return; }
     else return;
 
     dataArr.sort((a, b) => {
@@ -1718,9 +1800,7 @@ document.addEventListener('click', function(e) {
     });
 
     saveData(key, dataArr);
-    if (tableId === 'tasks-table') renderTasks();
-    else if (tableId === 'events-1p-table') renderEvents('1p');
-    else if (tableId === 'events-3p-table') renderEvents('3p');
+    if (rerender) rerender();
 });
 
 // ===== Stats & Home =====
@@ -1991,6 +2071,7 @@ async function handleLogout() {
 // ===== Init =====
 async function initApp() {
     migrateSidebarLinks();
+    migrateWorkEventDates();
     renderSidebar();
 
     lastSyncTime = localStorage.getItem('pa_last_sync');
