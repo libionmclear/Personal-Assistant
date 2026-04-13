@@ -401,8 +401,16 @@ function showPage(pageId) {
         page.classList.add('active');
         if (pageId === 'tasks') renderTasks();
         if (pageId === 'hero-products') renderProducts();
-        if (pageId === '1p-events') renderEvents('1p');
-        if (pageId === '3p-events') renderEvents('3p');
+        if (pageId === '1p-events' || pageId === '3p-events' || pageId === 'work-events') {
+            const target = document.getElementById('page-work-events');
+            if (target) {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                target.classList.add('active');
+                renderWorkEvents();
+                return;
+            }
+            renderEvents(pageId === '3p-events' ? '3p' : '1p');
+        }
         if (pageId === 'personal-tasks') renderPersonalTasks();
         if (pageId === 'family-events') renderFamilyEvents();
         if (pageId === 'finance') renderFinance();
@@ -981,6 +989,81 @@ function deleteEvent(type, idx) {
     else { events3p.splice(idx, 1); saveData(STORAGE_KEYS.events3p, events3p); renderEvents('3p'); }
 }
 
+// ===== Work Events (unified 1P + 3P) =====
+let workEventsFilter = { type: 'all', range: '3m', search: '' };
+
+function getAllWorkEvents() {
+    return [
+        ...events1p.map((e, i) => ({ ...e, _type: '1p', _idx: i })),
+        ...events3p.map((e, i) => ({ ...e, _type: '3p', _idx: i }))
+    ];
+}
+
+function renderWorkEvents() {
+    const tbody = document.getElementById('work-events-body');
+    if (!tbody) return;
+    const typeSel = document.getElementById('we-filter-type');
+    const rangeSel = document.getElementById('we-filter-range');
+    const searchInp = document.getElementById('we-filter-search');
+    if (typeSel) workEventsFilter.type = typeSel.value;
+    if (rangeSel) workEventsFilter.range = rangeSel.value;
+    if (searchInp) workEventsFilter.search = searchInp.value;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let cutoffEnd = null, cutoffStart = today;
+    if (workEventsFilter.range === '3m') { cutoffEnd = new Date(today); cutoffEnd.setMonth(cutoffEnd.getMonth() + 3); }
+    else if (workEventsFilter.range === '6m') { cutoffEnd = new Date(today); cutoffEnd.setMonth(cutoffEnd.getMonth() + 6); }
+    else if (workEventsFilter.range === '1y') { cutoffEnd = new Date(today); cutoffEnd.setFullYear(cutoffEnd.getFullYear() + 1); }
+    else if (workEventsFilter.range === 'all') { cutoffStart = null; cutoffEnd = null; }
+    const search = workEventsFilter.search.trim().toLowerCase();
+    let list = getAllWorkEvents();
+    if (workEventsFilter.type !== 'all') list = list.filter(e => e._type === workEventsFilter.type);
+    list = list.filter(e => {
+        if (e.date) {
+            const d = new Date(e.date + 'T00:00:00');
+            if (cutoffStart && d < cutoffStart) return false;
+            if (cutoffEnd && d > cutoffEnd) return false;
+        }
+        if (search) {
+            const hay = `${e.name || ''} ${e.hero || ''} ${e.pmm || ''} ${e.contact || ''} ${e.notes || ''}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+        }
+        return true;
+    });
+    list.sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
+    tbody.innerHTML = '';
+    list.forEach(ev => {
+        const t = ev._type, idx = ev._idx;
+        const typeBubble = t === '1p'
+            ? '<span style="background:#e67e22;color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px">1P</span>'
+            : '<span style="background:#fff3cd;color:#856404;font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;border:1px solid #ffeaa7">3P</span>';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${typeBubble}</td>
+            <td>${buildEventPrioritySelect(t, idx, ev.priority || 'P3')}</td>
+            <td><input type="date" value="${esc(ev.date)}" onchange="updateEvent('${t}',${idx},'date',this.value); renderWorkEvents()"></td>
+            <td><input type="text" value="${esc(ev.name)}" placeholder="Event name..." onchange="updateEvent('${t}',${idx},'name',this.value)"></td>
+            <td><input type="text" value="${esc(ev.hero)}" placeholder="Product..." onchange="updateEvent('${t}',${idx},'hero',this.value)"></td>
+            <td><input type="text" value="${esc(ev.pmm)}" placeholder="PMM..." onchange="updateEvent('${t}',${idx},'pmm',this.value)"></td>
+            <td><input type="text" value="${esc(ev.contact)}" placeholder="Contact..." onchange="updateEvent('${t}',${idx},'contact',this.value)"></td>
+            <td><input type="text" value="${esc(ev.plan)}" placeholder="Plan..." onchange="updateEvent('${t}',${idx},'plan',this.value)"></td>
+            <td><input type="text" value="${esc(ev.activity)}" placeholder="Activity..." onchange="updateEvent('${t}',${idx},'activity',this.value)"></td>
+            <td><textarea rows="1" placeholder="Notes..." onchange="updateEvent('${t}',${idx},'notes',this.value)">${esc(ev.notes || '')}</textarea></td>
+            <td><button class="btn-delete" onclick="deleteEvent('${t}',${idx}); renderWorkEvents()" title="Delete"><span class="material-icons-outlined">delete</span></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+    const countEl = document.getElementById('we-count');
+    if (countEl) countEl.textContent = `${list.length} event${list.length === 1 ? '' : 's'}`;
+    updateStats();
+}
+
+function addWorkEvent() {
+    const typeSel = document.getElementById('we-add-type');
+    const t = typeSel ? typeSel.value : '1p';
+    addEvent(t);
+    renderWorkEvents();
+}
+
 // ===== Hero Products =====
 function getPmmList(pmmStr) {
     if (!pmmStr) return [];
@@ -1027,29 +1110,64 @@ function addPmmFromDetail(idx) {
     showProductDetail(idx);
 }
 
+const PRODUCT_PALETTE = [
+    { bg: '#fde7e9', dark: '#c0392b' },
+    { bg: '#fdebd0', dark: '#b9770e' },
+    { bg: '#fef5d4', dark: '#9a7d0a' },
+    { bg: '#e8f8e8', dark: '#1e7e34' },
+    { bg: '#d4f1f4', dark: '#117a8b' },
+    { bg: '#dbeafe', dark: '#1d4ed8' },
+    { bg: '#e7e0fa', dark: '#5b21b6' },
+    { bg: '#f8d7da', dark: '#a71d2a' },
+    { bg: '#fce4ec', dark: '#ad1457' },
+    { bg: '#e0f2f1', dark: '#00695c' }
+];
+function getProductColor(idx) { return PRODUCT_PALETTE[idx % PRODUCT_PALETTE.length]; }
+
+function firstName(full) {
+    if (!full) return '';
+    return String(full).trim().split(/\s+/)[0];
+}
+
 function renderProducts() {
     const grid = document.getElementById('products-grid');
     grid.innerHTML = '';
     products.forEach((prod, idx) => {
         const pmmNames = getPmmList(prod.pmm);
         const managerName = prod.pmmManager || '';
+        const color = getProductColor(idx);
         const card = document.createElement('div');
         card.className = 'product-card';
+        card.style.background = color.bg;
+        card.style.borderColor = color.dark + '33';
         card.onclick = () => showProductDetail(idx);
+        const managerBubble = managerName
+            ? `<span class="bubble" style="background:${color.dark};color:#fff;font-weight:600">${esc(firstName(managerName))}</span>`
+            : '';
         card.innerHTML = `
             <h3>${esc(prod.name)}</h3>
-            ${managerName ? `<div class="card-manager"><span class="material-icons-outlined">manage_accounts</span> ${esc(managerName)}</div>` : ''}
+            ${managerBubble ? `<div class="card-label">Manager</div><div class="bubble-wrap" style="margin-bottom:10px">${managerBubble}</div>` : ''}
             <div class="card-label">PMM</div>
             <div class="bubble-wrap">${renderBubbles(pmmNames, idx, 'pmm')}</div>
         `;
         grid.appendChild(card);
     });
-
-    // Populate product selector
     const sel = document.getElementById('pmm-product-select');
-    if (sel) {
-        sel.innerHTML = products.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
-    }
+    if (sel) sel.innerHTML = products.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
+    const mgrSel = document.getElementById('mgr-product-select');
+    if (mgrSel) mgrSel.innerHTML = products.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join('');
+}
+
+function addManagerToProduct() {
+    const sel = document.getElementById('mgr-product-select');
+    const input = document.getElementById('mgr-name-input');
+    const idx = parseInt(sel.value);
+    const name = input.value.trim();
+    if (isNaN(idx) || !name) return;
+    products[idx].pmmManager = name;
+    saveData(STORAGE_KEYS.products, products);
+    input.value = '';
+    renderProducts();
 }
 
 function showProductDetail(idx) {

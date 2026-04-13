@@ -42,11 +42,8 @@
                 <a href="https://msit.powerbi.com/groups/me/apps/70f54bbb-4c7f-4d8d-b7e5-969829116cc6/reports/68fad35f-af18-4843-8349-0b0374d9f95b?ctid=72f988bf-86f1-41af-91ab-2d7cd011db47&experience=power-bi" target="_blank" class="neon-btn neon-cyan">
                     <span class="material-icons-outlined">dashboard</span> Dashboard
                 </a>
-                <a href="#" class="neon-btn neon-cyan" onclick="showPage('1p-events'); return false;">
-                    <span class="material-icons-outlined">event</span> 1P Events
-                </a>
-                <a href="#" class="neon-btn neon-cyan" onclick="showPage('3p-events'); return false;">
-                    <span class="material-icons-outlined">groups</span> 3P Events
+                <a href="#" class="neon-btn neon-cyan" onclick="showPage('work-events'); return false;">
+                    <span class="material-icons-outlined">event</span> Work Events
                 </a>
                 <a href="#" class="neon-btn neon-purple" onclick="showPage('personal-tasks'); return false;">
                     <span class="material-icons-outlined">checklist</span> Personal Tasks
@@ -369,7 +366,7 @@
 
                     <!-- PMM Management Panel -->
                     <div class="pmm-panel">
-                        <h3><span class="material-icons-outlined">person_add</span> Manage PMMs</h3>
+                        <h3><span class="material-icons-outlined">person_add</span> Add PMMs</h3>
                         <div class="pmm-panel-row">
                             <div class="pmm-panel-field">
                                 <label>Product</label>
@@ -380,6 +377,22 @@
                                 <input type="text" id="pmm-name-input" placeholder="Enter PMM name...">
                             </div>
                             <button class="btn-primary" onclick="addPmmToProduct()"><span class="material-icons-outlined">add</span> Add PMM</button>
+                        </div>
+                    </div>
+
+                    <!-- Manager Management Panel -->
+                    <div class="pmm-panel">
+                        <h3><span class="material-icons-outlined">manage_accounts</span> Add Managers</h3>
+                        <div class="pmm-panel-row">
+                            <div class="pmm-panel-field">
+                                <label>Product</label>
+                                <select id="mgr-product-select"></select>
+                            </div>
+                            <div class="pmm-panel-field">
+                                <label>Manager Name</label>
+                                <input type="text" id="mgr-name-input" placeholder="Enter manager name...">
+                            </div>
+                            <button class="btn-primary" onclick="addManagerToProduct()"><span class="material-icons-outlined">add</span> Set Manager</button>
                         </div>
                     </div>
                 </div>
@@ -443,6 +456,53 @@
                                 </tr>
                             </thead>
                             <tbody id="events-3p-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Work Events Page (unified 1P + 3P) -->
+                <div class="page" id="page-work-events">
+                    <div class="page-header">
+                        <h1><span class="material-icons-outlined">event</span> Work Events</h1>
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                            <select id="we-filter-type" class="vendor-select" onchange="renderWorkEvents()" style="min-width:110px">
+                                <option value="all">All Types</option>
+                                <option value="1p">1P only</option>
+                                <option value="3p">3P only</option>
+                            </select>
+                            <select id="we-filter-range" class="vendor-select" onchange="renderWorkEvents()" style="min-width:140px">
+                                <option value="3m">Next 3 months</option>
+                                <option value="6m">Next 6 months</option>
+                                <option value="1y">Next 12 months</option>
+                                <option value="all">All time</option>
+                            </select>
+                            <input id="we-filter-search" type="text" placeholder="Search..." oninput="renderWorkEvents()" style="padding:7px 10px;border:1px solid #dadce0;border-radius:6px;font-size:13px;min-width:160px">
+                            <span id="we-count" style="font-size:12px;color:#666"></span>
+                            <select id="we-add-type" class="vendor-select" style="min-width:90px">
+                                <option value="1p">1P</option>
+                                <option value="3p">3P</option>
+                            </select>
+                            <button class="btn-primary" onclick="addWorkEvent()"><span class="material-icons-outlined">add</span> Add Event</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table id="work-events-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Date</th>
+                                    <th>Event Name</th>
+                                    <th>Hero Product</th>
+                                    <th>PMM</th>
+                                    <th>Marketing Contact</th>
+                                    <th>Plan of Record</th>
+                                    <th>Marketing Activity</th>
+                                    <th>Notes</th>
+                                    <th class="col-actions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="work-events-body"></tbody>
                         </table>
                     </div>
                 </div>
@@ -580,6 +640,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260413a"></script>
+    <script src="app.js?v=20260413b"></script>
 </body>
 </html>
