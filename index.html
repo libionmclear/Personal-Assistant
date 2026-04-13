@@ -502,22 +502,32 @@
                 <div class="page" id="page-finance">
                     <div class="page-header">
                         <h1><span class="material-icons-outlined">account_balance_wallet</span> Finance Tracker</h1>
-                        <div style="display:flex;align-items:center;gap:12px">
+                        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
                             <select id="finance-filter-who" class="vendor-select" onchange="filterFinance()" style="min-width:140px">
                                 <option value="">All People</option>
                             </select>
+                            <select id="finance-filter-range" class="vendor-select" onchange="filterFinance()" style="min-width:140px">
+                                <option value="all">All Time</option>
+                                <option value="1y">1 Year</option>
+                                <option value="ytd">Year to Date</option>
+                                <option value="30">Last 30 Days</option>
+                                <option value="60">Last 60 Days</option>
+                                <option value="90">Last 90 Days</option>
+                            </select>
+                            <input id="finance-filter-search" type="text" placeholder="Search notes/name..." oninput="filterFinance()" style="padding:7px 10px;border:1px solid #dadce0;border-radius:6px;font-size:13px;min-width:180px">
                             <button class="btn-primary" onclick="addFinanceRecord()"><span class="material-icons-outlined">add</span> Add Record</button>
                         </div>
                     </div>
+                    <div id="finance-charts" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px"></div>
                     <div id="finance-totals" style="margin-bottom:16px;font-size:14px;padding:12px 18px;background:#fff;border-radius:8px;border:1px solid #e8eaed"></div>
                     <div class="table-container">
                         <table id="finance-table">
                             <thead>
                                 <tr>
                                     <th>Who</th>
-                                    <th>Type</th>
                                     <th>Method</th>
-                                    <th>Amount</th>
+                                    <th style="text-align:right">Debit</th>
+                                    <th style="text-align:right">Credit</th>
                                     <th>Date</th>
                                     <th>Notes</th>
                                     <th class="col-actions"></th>
@@ -557,6 +567,6 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260412f"></script>
+    <script src="app.js?v=20260412g"></script>
 </body>
 </html>

@@ -1080,48 +1080,151 @@ function deleteProductSub(prodIdx, arr, subIdx) {
 }
 
 // ===== Finance Tracker =====
+const fmtMoney = n => (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function financeFilterRecords() {
+    const whoVal = (document.getElementById('finance-filter-who') || {}).value || '';
+    const rangeVal = (document.getElementById('finance-filter-range') || {}).value || 'all';
+    const searchVal = ((document.getElementById('finance-filter-search') || {}).value || '').trim().toLowerCase();
+    const now = new Date();
+    let cutoff = null;
+    if (rangeVal === 'ytd') cutoff = new Date(now.getFullYear(), 0, 1);
+    else if (rangeVal === '1y') { cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1); }
+    else if (rangeVal === '30' || rangeVal === '60' || rangeVal === '90') {
+        cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - parseInt(rangeVal));
+    }
+    return financeRecords.map((rec, idx) => ({ rec, idx })).filter(({ rec }) => {
+        if (whoVal && rec.who !== whoVal) return false;
+        if (cutoff && rec.date) { if (new Date(rec.date) < cutoff) return false; }
+        if (searchVal) {
+            const hay = ((rec.notes || '') + ' ' + (rec.who || '')).toLowerCase();
+            if (!hay.includes(searchVal)) return false;
+        }
+        return true;
+    });
+}
+
 function renderFinance() {
     const filterWho = document.getElementById('finance-filter-who');
-    if (filterWho && filterWho.options.length <= 1) {
-        filterWho.innerHTML = '<option value="">All</option>' + PERSONAL_WHO.map(w => `<option value="${w}">${w}</option>`).join('');
+    if (filterWho) {
+        const people = Array.from(new Set([...PERSONAL_WHO, ...financeRecords.map(r => r.who).filter(Boolean)]));
+        const cur = filterWho.value;
+        filterWho.innerHTML = '<option value="">All People</option>' + people.map(w => `<option value="${esc(w)}" ${w === cur ? 'selected' : ''}>${esc(w)}</option>`).join('');
     }
-    const filterVal = filterWho ? filterWho.value : '';
+    const filtered = financeFilterRecords();
     const tbody = document.getElementById('finance-body');
     tbody.innerHTML = '';
     let totalDebit = 0, totalCredit = 0;
-    financeRecords.forEach((rec, idx) => {
-        if (filterVal && rec.who !== filterVal) return;
+    filtered.forEach(({ rec, idx }) => {
         const amt = parseFloat(rec.amount) || 0;
-        if (rec.type === 'Debit') totalDebit += amt;
-        else totalCredit += amt;
-        const tColor = rec.type === 'Debit' ? '#e74c3c' : '#27ae60';
+        if (rec.type === 'Debit') totalDebit += amt; else totalCredit += amt;
         const mColor = rec.method === 'Cash' ? '#2980b9' : '#e67e22';
+        const debitVal = rec.type === 'Debit' ? fmtMoney(amt) : '';
+        const creditVal = rec.type === 'Credit' ? fmtMoney(amt) : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${buildFinanceWhoSelect(rec.who, idx)}</td>
-            <td><select class="cat-select" style="background:${tColor};color:#fff" onchange="updateFinance(${idx},'type',this.value)">
-                <option value="Debit" ${rec.type === 'Debit' ? 'selected' : ''} style="background:#fff;color:#333">Debit</option>
-                <option value="Credit" ${rec.type === 'Credit' ? 'selected' : ''} style="background:#fff;color:#333">Credit</option>
-            </select></td>
             <td><select class="cat-select" style="background:${mColor};color:#fff" onchange="updateFinance(${idx},'method',this.value)">
                 <option value="Purchase" ${rec.method !== 'Cash' ? 'selected' : ''} style="background:#fff;color:#333">Purchase</option>
                 <option value="Cash" ${rec.method === 'Cash' ? 'selected' : ''} style="background:#fff;color:#333">Cash</option>
             </select></td>
-            <td style="text-align:right;white-space:nowrap"><span style="color:#888">$</span><input type="number" step="0.01" value="${esc(rec.amount)}" placeholder="0.00" onchange="updateFinance(${idx},'amount',this.value)" style="width:100px;text-align:right"></td>
+            <td style="text-align:right;white-space:nowrap;color:#e74c3c"><span style="color:#888">$</span><input type="text" inputmode="decimal" value="${debitVal}" placeholder="0.00" onchange="updateFinanceAmount(${idx},'Debit',this.value)" style="width:110px;text-align:right;color:#e74c3c;font-weight:600"></td>
+            <td style="text-align:right;white-space:nowrap;color:#27ae60"><span style="color:#888">$</span><input type="text" inputmode="decimal" value="${creditVal}" placeholder="0.00" onchange="updateFinanceAmount(${idx},'Credit',this.value)" style="width:110px;text-align:right;color:#27ae60;font-weight:600"></td>
             <td><input type="date" value="${esc(rec.date)}" onchange="updateFinance(${idx},'date',this.value)"></td>
             <td><textarea rows="1" placeholder="Notes..." onchange="updateFinance(${idx},'notes',this.value)">${esc(rec.notes || '')}</textarea></td>
             <td><button class="btn-delete" onclick="deleteFinance(${idx})" title="Delete"><span class="material-icons-outlined">delete</span></button></td>
         `;
         tbody.appendChild(tr);
     });
-    // Totals
     const totalEl = document.getElementById('finance-totals');
     if (totalEl) {
         const balance = totalCredit - totalDebit;
         const balColor = balance >= 0 ? '#27ae60' : '#e74c3c';
-        const fmt = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        totalEl.innerHTML = `<span style="color:#e74c3c;font-weight:700">Debit: $${fmt(totalDebit)}</span> &nbsp;|&nbsp; <span style="color:#27ae60;font-weight:700">Credit: $${fmt(totalCredit)}</span> &nbsp;|&nbsp; <span style="color:${balColor};font-weight:700">Balance: $${fmt(balance)}</span>`;
+        totalEl.innerHTML = `<span style="color:#e74c3c;font-weight:700">Debit: $${fmtMoney(totalDebit)}</span> &nbsp;|&nbsp; <span style="color:#27ae60;font-weight:700">Credit: $${fmtMoney(totalCredit)}</span> &nbsp;|&nbsp; <span style="color:${balColor};font-weight:700">Balance: $${fmtMoney(balance)}</span> &nbsp;|&nbsp; <span style="color:#555">${filtered.length} record${filtered.length === 1 ? '' : 's'}</span>`;
     }
+    renderFinanceCharts(filtered.map(f => f.rec));
+}
+
+function renderFinanceCharts(records) {
+    const host = document.getElementById('finance-charts');
+    if (!host) return;
+    host.style.gridTemplateColumns = '1fr 1fr 1fr';
+    const debits = records.filter(r => r.type === 'Debit');
+    // Chart 1: spending by person
+    const byPerson = {};
+    debits.forEach(r => { const k = r.who || '—'; byPerson[k] = (byPerson[k] || 0) + (parseFloat(r.amount) || 0); });
+    // Chart 2: spending by method
+    const byMethod = {};
+    debits.forEach(r => { const k = r.method || 'Purchase'; byMethod[k] = (byMethod[k] || 0) + (parseFloat(r.amount) || 0); });
+    // Chart 3: debit vs credit by month
+    const byMonth = {};
+    records.forEach(r => {
+        if (!r.date) return;
+        const k = r.date.substring(0, 7);
+        if (!byMonth[k]) byMonth[k] = { d: 0, c: 0 };
+        const amt = parseFloat(r.amount) || 0;
+        if (r.type === 'Debit') byMonth[k].d += amt; else byMonth[k].c += amt;
+    });
+    host.innerHTML =
+        financeBarChart('Spending by Person', byPerson, '#e74c3c') +
+        financeDonutChart('Spending by Method', byMethod, ['#e67e22', '#2980b9']) +
+        financeMonthChart('Debit vs Credit by Month', byMonth);
+}
+
+function financeCard(title, inner) {
+    return `<div style="background:#fff;border:1px solid #e8eaed;border-radius:8px;padding:14px"><div style="font-size:12px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">${title}</div>${inner}</div>`;
+}
+
+function financeBarChart(title, data, color) {
+    const entries = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    if (!entries.length) return financeCard(title, '<div style="color:#999;font-size:13px">No data</div>');
+    const max = Math.max(...entries.map(e => e[1])) || 1;
+    const rows = entries.map(([k, v]) => {
+        const pct = (v / max) * 100;
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px"><div style="width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(k)}">${esc(k)}</div><div style="flex:1;background:#f1f3f4;border-radius:3px;height:16px;position:relative"><div style="width:${pct}%;height:100%;background:${color};border-radius:3px"></div></div><div style="width:80px;text-align:right;font-weight:600;color:${color}">$${fmtMoney(v)}</div></div>`;
+    }).join('');
+    return financeCard(title, rows);
+}
+
+function financeDonutChart(title, data, palette) {
+    const entries = Object.entries(data).filter(([, v]) => v > 0);
+    if (!entries.length) return financeCard(title, '<div style="color:#999;font-size:13px">No data</div>');
+    const total = entries.reduce((s, [, v]) => s + v, 0);
+    const r = 52, c = 2 * Math.PI * r;
+    let offset = 0;
+    const segs = entries.map(([k, v], i) => {
+        const frac = v / total;
+        const dash = frac * c;
+        const el = `<circle cx="70" cy="70" r="${r}" fill="none" stroke="${palette[i % palette.length]}" stroke-width="20" stroke-dasharray="${dash} ${c - dash}" stroke-dashoffset="${-offset}" transform="rotate(-90 70 70)"/>`;
+        offset += dash;
+        return el;
+    }).join('');
+    const legend = entries.map(([k, v], i) => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px"><span style="width:10px;height:10px;background:${palette[i % palette.length]};border-radius:2px;display:inline-block"></span><span style="flex:1">${esc(k)}</span><span style="font-weight:600">$${fmtMoney(v)}</span></div>`).join('');
+    return financeCard(title, `<div style="display:flex;align-items:center;gap:12px"><svg width="140" height="140" viewBox="0 0 140 140">${segs}<text x="70" y="68" text-anchor="middle" font-size="11" fill="#555">Total</text><text x="70" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#333">$${fmtMoney(total)}</text></svg><div style="flex:1;min-width:0">${legend}</div></div>`);
+}
+
+function financeMonthChart(title, byMonth) {
+    const keys = Object.keys(byMonth).sort().slice(-6);
+    if (!keys.length) return financeCard(title, '<div style="color:#999;font-size:13px">No data</div>');
+    const max = Math.max(...keys.map(k => Math.max(byMonth[k].d, byMonth[k].c))) || 1;
+    const w = 280, h = 140, pad = 22, bw = (w - pad * 2) / keys.length;
+    const bars = keys.map((k, i) => {
+        const x = pad + i * bw;
+        const dh = (byMonth[k].d / max) * (h - pad - 20);
+        const ch = (byMonth[k].c / max) * (h - pad - 20);
+        const barW = (bw - 8) / 2;
+        return `<rect x="${x + 2}" y="${h - pad - dh}" width="${barW}" height="${dh}" fill="#e74c3c"><title>Debit $${fmtMoney(byMonth[k].d)}</title></rect><rect x="${x + 2 + barW + 2}" y="${h - pad - ch}" width="${barW}" height="${ch}" fill="#27ae60"><title>Credit $${fmtMoney(byMonth[k].c)}</title></rect><text x="${x + bw / 2}" y="${h - 6}" text-anchor="middle" font-size="10" fill="#666">${k.substring(5)}/${k.substring(2, 4)}</text>`;
+    }).join('');
+    const legend = `<div style="display:flex;gap:14px;font-size:11px;margin-top:4px"><span><span style="display:inline-block;width:10px;height:10px;background:#e74c3c;border-radius:2px"></span> Debit</span><span><span style="display:inline-block;width:10px;height:10px;background:#27ae60;border-radius:2px"></span> Credit</span></div>`;
+    return financeCard(title, `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}">${bars}</svg>${legend}`);
+}
+
+function updateFinanceAmount(idx, type, value) {
+    const num = parseFloat(String(value).replace(/,/g, '')) || 0;
+    financeRecords[idx].type = type;
+    financeRecords[idx].amount = num;
+    debounceSave(STORAGE_KEYS.financeRecords, financeRecords);
+    renderFinance();
 }
 
 function buildFinanceWhoSelect(selected, idx) {
