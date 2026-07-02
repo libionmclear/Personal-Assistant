@@ -1,4 +1,16 @@
 {
+  "buildCommand": "npm run build:web",
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/game.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
