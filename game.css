@@ -1,0 +1,130 @@
+:root {
+  --bg: #17130f;
+  --panel: #2d2018;
+  --panel-2: #3b2a20;
+  --line: #614834;
+  --text: #f5e8d0;
+  --muted: #c7b18c;
+  --accent: #c7882c;
+  --rome: #d06b36;
+  --carthage: #4f9ecb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  background: radial-gradient(circle at top, #2a1e15, var(--bg));
+  color: var(--text);
+}
+
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  background: var(--accent);
+  color: #1a110b;
+  border: 0;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+#status-line,
+#victory-line,
+#hint-line {
+  margin: 3px 0;
+}
+
+#hint-line {
+  color: var(--muted);
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(44px, 1fr));
+  gap: 6px;
+}
+
+.tile {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  min-height: 62px;
+  padding: 5px;
+  font-size: 0.68rem;
+  text-align: left;
+  color: var(--text);
+}
+
+.tile.selected {
+  outline: 2px solid #f2cc69;
+}
+
+.tile.terrain-plains { background: #5f6f42; }
+.tile.terrain-valley { background: #718a44; }
+.tile.terrain-forest { background: #35553a; }
+.tile.terrain-hills { background: #5b4e3c; }
+.tile.terrain-desert { background: #907449; }
+.tile.terrain-coast { background: #3e6d80; }
+.tile.terrain-sea { background: #2f4f77; }
+
+.owner-rome {
+  color: #ffd8c2;
+  border-left: 3px solid var(--rome);
+  padding-left: 3px;
+}
+
+.owner-carthage {
+  color: #d2edff;
+  border-left: 3px solid var(--carthage);
+  padding-left: 3px;
+}
+
+@media (max-width: 760px) {
+  .board {
+    grid-template-columns: repeat(8, minmax(34px, 1fr));
+    gap: 4px;
+  }
+
+  .tile {
+    min-height: 54px;
+    font-size: 0.62rem;
+    padding: 4px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

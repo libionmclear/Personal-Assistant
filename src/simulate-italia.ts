@@ -1,6 +1,6 @@
-import { applyAction, createInitialGameState } from "./engine/index";
+import { createInitialGameState, getVictoryStatus } from "./engine/index";
+import { runAiTurn } from "./engine/ai";
 import { loadScenario } from "./engine/scenarios";
-import type { GameAction } from "./engine/types";
 
 function summarize(state: ReturnType<typeof createInitialGameState>): string {
   const current = state.players[state.currentPlayerIndex];
@@ -14,25 +14,25 @@ function run(): void {
   const scenario = loadScenario("italia");
   let state = createInitialGameState(scenario.config);
 
-  const script: GameAction[] = [
-    { type: "FOUND_CITY", playerId: "rome", settlerId: "r_settler", cityId: "neapolis" },
-    { type: "BUILD_UNIT", playerId: "rome", cityId: "roma", unitType: "archer", unitId: "r_archer_1" },
-    { type: "END_TURN", playerId: "rome" },
-    { type: "FOUND_CITY", playerId: "carthage", settlerId: "c_settler", cityId: "motya" },
-    { type: "BUILD_UNIT", playerId: "carthage", cityId: "karthago", unitType: "archer", unitId: "c_archer_1" },
-    { type: "END_TURN", playerId: "carthage" },
-    { type: "END_TURN", playerId: "rome" },
-    { type: "END_TURN", playerId: "carthage" }
-  ];
-
   console.log(`Scenario: ${scenario.name}`);
   console.log(scenario.historicalBrief);
   console.log(summarize(state));
 
-  for (const action of script) {
-    state = applyAction(state, action);
-    console.log(`${action.playerId} -> ${action.type}`);
+  for (let round = 0; round < 6; round += 1) {
+    const active = state.players[state.currentPlayerIndex].id;
+    const turn = runAiTurn(state, active, 8);
+    state = turn.state;
+
+    for (const action of turn.actions) {
+      console.log(`${action.playerId} -> ${action.type}`);
+    }
     console.log(summarize(state));
+
+    const victory = getVictoryStatus(state);
+    if (victory.winnerId) {
+      console.log(`Victory: ${victory.type} by ${victory.winnerId}`);
+      break;
+    }
   }
 
   console.log("Simulation complete.");

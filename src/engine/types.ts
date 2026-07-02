@@ -69,6 +69,7 @@ export interface City {
   population: number;
   hp: number;
   maxHp: number;
+  isCapital?: boolean;
 }
 
 export interface Player {
@@ -164,6 +165,13 @@ export interface BuildUnitAction {
   unitId: string;
 }
 
+export interface AttackCityAction {
+  type: "ATTACK_CITY";
+  playerId: string;
+  attackerId: string;
+  cityId: string;
+}
+
 export type GameAction =
   | MoveUnitAction
   | AttackAction
@@ -171,7 +179,14 @@ export type GameAction =
   | ChooseForkAction
   | EndTurnAction
   | FoundCityAction
-  | BuildUnitAction;
+  | BuildUnitAction
+  | AttackCityAction;
+
+export interface VictoryStatus {
+  winnerId: string | null;
+  type: "domination" | null;
+  reason: string | null;
+}
 
 export interface CombatPreview {
   damageToDefender: number;

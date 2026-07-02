@@ -70,8 +70,8 @@ export const italiaScenario: CreateGameConfig = {
       "7,5": { terrain: "sea", region: "tyrrhenian" }
     },
     cities: {
-      roma: { id: "roma", ownerId: "rome", position: { q: 1, r: 1 }, population: 2, hp: 40, maxHp: 40 },
-      karthago: { id: "karthago", ownerId: "carthage", position: { q: 5, r: 4 }, population: 2, hp: 40, maxHp: 40 }
+      roma: { id: "roma", ownerId: "rome", position: { q: 1, r: 1 }, population: 2, hp: 40, maxHp: 40, isCapital: true },
+      karthago: { id: "karthago", ownerId: "carthage", position: { q: 5, r: 4 }, population: 2, hp: 40, maxHp: 40, isCapital: true }
     },
     units: {
       r_warrior: { id: "r_warrior", type: "warrior", ownerId: "rome", position: { q: 2, r: 1 } },

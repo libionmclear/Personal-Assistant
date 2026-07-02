@@ -6,6 +6,7 @@ import {
   canResearch,
   computeCombatPreview,
   createInitialGameState,
+  getVictoryStatus,
   keyOf,
   movementCost,
   replayActions
@@ -183,4 +184,26 @@ test("build unit spends production and creates unit in city tile", () => {
   assert.equal(state.map.units.p1_archer_new.ownerId, "p1");
   assert.deepEqual(state.map.units.p1_archer_new.position, state.map.cities.c1.position);
   assert.ok(state.playersById.p1.unitIds.includes("p1_archer_new"));
+});
+
+test("city can be captured and domination victory is detected", () => {
+  let state = buildState();
+
+  state.map.cities.c1.isCapital = true;
+  state.map.cities.c2.isCapital = true;
+  state.map.cities.c2.position = { q: 2, r: 1 };
+  state.map.cities.c2.hp = 6;
+
+  state = applyAction(state, {
+    type: "ATTACK_CITY",
+    playerId: "p1",
+    attackerId: "u1",
+    cityId: "c2"
+  });
+
+  assert.equal(state.map.cities.c2.ownerId, "p1");
+
+  const victory = getVictoryStatus(state);
+  assert.equal(victory.type, "domination");
+  assert.equal(victory.winnerId, "p1");
 });

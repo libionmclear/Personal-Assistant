@@ -3,6 +3,7 @@ import { distance, edgeKey, keyOf, neighborsOf, parseKey } from "./hex";
 import { findPath, movementCost } from "./pathfinding";
 import { seededRandom } from "./rng";
 import type {
+  AttackCityAction,
   ChooseForkAction,
   CombatPreview,
   Coord,
@@ -20,6 +21,7 @@ import type {
   Tile,
   Unit,
   Veterancy,
+  VictoryStatus,
   WeatherType
 } from "./types";
 
@@ -101,7 +103,8 @@ function normalizeMap(configMap: NonNullable<CreateGameConfig["map"]> | undefine
           position: city.position,
           population: city.population,
           hp: city.hp ?? 40,
-          maxHp: city.maxHp ?? 40
+          maxHp: city.maxHp ?? 40,
+          isCapital: city.isCapital ?? false
         }
       ])
     ),
@@ -322,6 +325,43 @@ function applyCombat(state: GameState, action: Extract<GameAction, { type: "ATTA
   }
 }
 
+function computeCityAttackDamage(state: GameState, attacker: Unit, city: City): number {
+  const attackerDef = UNITS[attacker.type];
+  const cityTile = tileAt(state, city.position);
+  const weather = state.weather.current[cityTile.region] || "clear";
+
+  const weatherMult = weather === "fog" ? 0.95 : 1;
+  const attackPower = attackerDef.attack * (attacker.hp / attacker.maxHp) * veterancyMultiplier(attacker.veterancy) * weatherMult;
+  const cityDefense = 22 + city.population * 3;
+
+  return Math.max(1, Math.round((18 * attackPower) / (attackPower + cityDefense)));
+}
+
+function applyAttackCity(state: GameState, action: AttackCityAction): void {
+  assertPlayerTurn(state, action.playerId);
+  const attacker = unitAt(state, action.attackerId);
+  const city = cityAt(state, action.cityId);
+
+  if (attacker.ownerId !== action.playerId) throw new Error("Cannot attack city with enemy unit");
+  if (city.ownerId === action.playerId) throw new Error("Cannot attack friendly city");
+
+  const attackerDef = UNITS[attacker.type];
+  if (distance(attacker.position, city.position) > attackerDef.range) {
+    throw new Error("City is out of range");
+  }
+
+  const damage = computeCityAttackDamage(state, attacker, city);
+  city.hp = Math.max(0, city.hp - damage);
+  attacker.movementRemaining = 0;
+
+  if (city.hp <= 0) {
+    city.ownerId = attacker.ownerId;
+    city.population = Math.max(1, city.population - 1);
+    city.hp = Math.ceil(city.maxHp * 0.6);
+    syncOwnershipIndexes(state);
+  }
+}
+
 export function canResearch(player: Player, techId: string): boolean {
   const tech = TECHS[techId];
   if (!tech) throw new Error(`Unknown tech ${techId}`);
@@ -494,6 +534,25 @@ export function createInitialGameState(config: CreateGameConfig = {}): GameState
   return state;
 }
 
+export function getVictoryStatus(state: GameState): VictoryStatus {
+  const capitals = Object.values(state.map.cities).filter((city) => city.isCapital);
+  if (capitals.length === 0) {
+    return { winnerId: null, type: null, reason: null };
+  }
+
+  const owner = capitals[0].ownerId;
+  const allOwnedBySamePlayer = capitals.every((city) => city.ownerId === owner);
+  if (!allOwnedBySamePlayer) {
+    return { winnerId: null, type: null, reason: null };
+  }
+
+  return {
+    winnerId: owner,
+    type: "domination",
+    reason: `${owner} controls all capitals`
+  };
+}
+
 export function applyAction(inputState: GameState, action: GameAction): GameState {
   const state = deepClone(inputState);
   state.playersById = makePlayersById(state.players);
@@ -519,6 +578,9 @@ export function applyAction(inputState: GameState, action: GameAction): GameStat
       break;
     case "BUILD_UNIT":
       applyBuildUnit(state, action);
+      break;
+    case "ATTACK_CITY":
+      applyAttackCity(state, action);
       break;
     default: {
       const unknownAction: never = action;

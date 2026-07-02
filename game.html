@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HEGEMON Prototype</title>
+  <link rel="stylesheet" href="game.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1>HEGEMON Prototype</h1>
+      <div class="controls">
+        <button id="new-game-btn">New Italia Scenario</button>
+        <button id="end-turn-btn">End Turn</button>
+      </div>
+    </header>
+
+    <section class="status-panel">
+      <div id="status-line"></div>
+      <div id="victory-line"></div>
+      <div id="hint-line">Hint: Select your unit, then click a tile to move or attack.</div>
+    </section>
+
+    <section id="board" class="board"></section>
+  </main>
+
+  <script src="web/engine.bundle.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
